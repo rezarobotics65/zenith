@@ -150,6 +150,8 @@ class CaseStudy(models.Model):
     action = models.TextField()
     result = models.TextField()
     headline_metric = models.CharField(max_length=80, blank=True, help_text='"60% fewer incidents"')
+    cover_image = models.ImageField(upload_to='case-studies/', blank=True)
+    tech_tags = models.CharField(max_length=200, blank=True, help_text='Comma-separated, e.g. "Python, OpenCV, AWS"')
     related_experience = models.ForeignKey(
         Experience, null=True, blank=True, on_delete=models.SET_NULL, related_name='case_studies',
     )
@@ -180,3 +182,86 @@ class CaseStudy(models.Model):
         """Heuristic used for the portfolio's small "AI" tag (Section 8, BUILD_BRIEF.md)."""
         text = ' '.join([self.title, self.situation, self.task, self.action, self.result]).lower()
         return any(keyword in text for keyword in self.AI_KEYWORDS)
+
+    @property
+    def tech_tag_list(self):
+        return [t.strip() for t in self.tech_tags.split(',') if t.strip()]
+
+
+class CoreExpertise(models.Model):
+    """A short, curated list of current specialisms for the portfolio hero's
+    "Core Expertise" grid — distinct from tracker.SkillDomain, which tracks
+    aspirational roadmap progress rather than proven current expertise."""
+
+    class Icon(models.TextChoices):
+        AI_DELIVERY = 'AI_DELIVERY', 'AI Delivery'
+        SMART_SYSTEMS = 'SMART_SYSTEMS', 'Smart Systems'
+        COMPUTER_VISION = 'COMPUTER_VISION', 'Computer Vision'
+        IOT_ROBOTICS = 'IOT_ROBOTICS', 'IoT & Robotics'
+        DATA_ANALYTICS = 'DATA_ANALYTICS', 'Data Analytics'
+        LEADERSHIP = 'LEADERSHIP', 'Leadership'
+        CLOUD = 'CLOUD', 'Cloud'
+        GOVERNANCE = 'GOVERNANCE', 'Governance'
+        MACHINE_LEARNING = 'MACHINE_LEARNING', 'Machine Learning'
+        DIGITAL_HUMAN = 'DIGITAL_HUMAN', 'Digital Human'
+        RAG = 'RAG', 'RAG'
+        PROJECT_MANAGEMENT = 'PROJECT_MANAGEMENT', 'Project Management'
+        ENTERPRISE_AI = 'ENTERPRISE_AI', 'Enterprise AI'
+
+    name = models.CharField(max_length=80)
+    icon = models.CharField(max_length=20, choices=Icon.choices, default=Icon.AI_DELIVERY)
+    order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name_plural = 'Core expertise'
+
+    def __str__(self):
+        return self.name
+
+
+class TechTool(models.Model):
+    """An entry in the portfolio's "Tools & Technologies" grid. Shows an
+    uploaded logo if present (upload the vendor's real logo file for a
+    pixel-perfect brand icon — no external icon library is permitted in this
+    stack, so a CDN icon font isn't an option); otherwise falls back to a
+    hand-drawn stand-in icon selected from icon_key, and to the abbreviation
+    text if even that has no match."""
+
+    class IconKey(models.TextChoices):
+        PYTHON = 'PYTHON', 'Python'
+        FASTAPI = 'FASTAPI', 'FastAPI'
+        REACT = 'REACT', 'React'
+        TENSORFLOW = 'TENSORFLOW', 'TensorFlow'
+        PYTORCH = 'PYTORCH', 'PyTorch'
+        OPENCV = 'OPENCV', 'OpenCV'
+        LANGCHAIN = 'LANGCHAIN', 'LangChain'
+        OPENAI = 'OPENAI', 'OpenAI'
+        CHROMADB = 'CHROMADB', 'ChromaDB'
+        AWS = 'AWS', 'AWS'
+        AZURE = 'AZURE', 'Azure'
+        DOCKER = 'DOCKER', 'Docker'
+        POSTGRESQL = 'POSTGRESQL', 'PostgreSQL'
+        MONGODB = 'MONGODB', 'MongoDB'
+        GIT = 'GIT', 'Git'
+        LINUX = 'LINUX', 'Linux'
+        GENERIC = 'GENERIC', 'Generic'
+
+    name = models.CharField(max_length=60)
+    abbreviation = models.CharField(max_length=6, help_text='Fallback label if no icon matches, e.g. "Py", "AWS"')
+    icon_key = models.CharField(max_length=20, choices=IconKey.choices, default=IconKey.GENERIC)
+    icon = models.ImageField(upload_to='tools/', blank=True, help_text="Optional — upload the vendor's real logo for a pixel-perfect icon")
+    order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name_plural = 'Tools & technologies'
+
+    def __str__(self):
+        return self.name

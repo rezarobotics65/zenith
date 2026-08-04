@@ -5,21 +5,26 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 
-from tracker import services
+from django.utils import timezone
+
+from tracker import analytics, services
+from tracker.middleware import classify_referral
 from tracker.models import (
     ActivityLog,
     CareerObjective,
     Certification,
     Course,
+    CVDownloadLog,
     KPI,
     MonthlyPlan,
     Pillar,
     Resume,
     Skill,
     SkillDomain,
+    VisitorLog,
 )
 
-TRACKER_URLS = ['/tracker/', '/tracker/kpi/', '/tracker/activity/', '/tracker/cv/']
+TRACKER_URLS = ['/tracker/', '/tracker/kpi/', '/tracker/activity/', '/tracker/cv/', '/tracker/visitor-log/']
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +267,51 @@ def test_toggle_commitment(staff_client):
     assert commitment.is_complete is False
 
 
+@pytest.mark.django_db
+def test_quick_set_course_hours_collapses_same_day_edits(staff_client):
+    """Re-typing a new total for the same course on the same day should update
+    that day's adjustment ActivityLog entry in place, not stack a new one."""
+    course = Course.objects.create(name='Test Course', provider='X', tier=Course.Tier.TECHNICAL, order=1)
+
+    staff_client.post(f'/tracker/course/{course.pk}/set-hours/', data={'hours': '0.25', 'next': '/tracker/kpi/'})
+    assert course.hours_logged == Decimal('0.25')
+    assert ActivityLog.objects.filter(course=course).count() == 1
+
+    staff_client.post(f'/tracker/course/{course.pk}/set-hours/', data={'hours': '0.5', 'next': '/tracker/kpi/'})
+    assert course.hours_logged == Decimal('0.5')
+    assert ActivityLog.objects.filter(course=course).count() == 1
+
+    staff_client.post(f'/tracker/course/{course.pk}/set-hours/', data={'hours': '0.5', 'next': '/tracker/kpi/'})
+    assert course.hours_logged == Decimal('0.5')
+    assert ActivityLog.objects.filter(course=course).count() == 1
+
+    staff_client.post(f'/tracker/course/{course.pk}/set-hours/', data={'hours': '0', 'next': '/tracker/kpi/'})
+    assert course.hours_logged == Decimal('0')
+    assert ActivityLog.objects.filter(course=course).count() == 0
+
+
+@pytest.mark.django_db
+def test_quick_set_course_hours_does_not_touch_other_entries(staff_client):
+    """A manual ActivityLog entry (different title, e.g. logged by hand) must
+    survive a same-day quick-set adjustment for the same course untouched."""
+    course = Course.objects.create(name='Test Course', provider='X', tier=Course.Tier.TECHNICAL, order=1)
+    manual = ActivityLog.objects.create(
+        date=date.today(), activity_type=ActivityLog.ActivityType.STUDY,
+        title='Manual session', hours=Decimal('1.00'), course=course,
+    )
+
+    staff_client.post(f'/tracker/course/{course.pk}/set-hours/', data={'hours': '2', 'next': '/tracker/kpi/'})
+    assert course.hours_logged == Decimal('2.00')
+    manual.refresh_from_db()
+    assert manual.hours == Decimal('1.00')
+
+    staff_client.post(f'/tracker/course/{course.pk}/set-hours/', data={'hours': '3', 'next': '/tracker/kpi/'})
+    assert course.hours_logged == Decimal('3.00')
+    manual.refresh_from_db()
+    assert manual.hours == Decimal('1.00')
+    assert ActivityLog.objects.filter(course=course).count() == 2
+
+
 # ---------------------------------------------------------------------------
 # CV / Resume
 # ---------------------------------------------------------------------------
@@ -270,13 +320,6 @@ def _dummy_pdf(name='resume.pdf'):
     return SimpleUploadedFile(name, b'%PDF-1.4 test content', content_type='application/pdf')
 
 
-@pytest.fixture
-def tmp_media(settings, tmp_path):
-    """FileField.save() writes to disk immediately and isn't rolled back
-    with the test DB transaction — redirect MEDIA_ROOT to a throwaway
-    directory so Resume tests never touch the real project media/ folder."""
-    settings.MEDIA_ROOT = str(tmp_path)
-    return tmp_path
 
 
 @pytest.mark.django_db
@@ -321,3 +364,137 @@ def test_cv_list_shows_uploaded_resumes(staff_client, tmp_media):
     assert response.status_code == 200
     assert b'my-resume' in response.content
     assert b'Default' in response.content
+
+
+# ---------------------------------------------------------------------------
+# Visitor Log — traffic + CV download analytics
+# ---------------------------------------------------------------------------
+
+def _make_visit(**overrides):
+    now = timezone.now()
+    defaults = dict(visit_time=now, last_seen=now, ip_address='8.8.8.8', country='United States')
+    defaults.update(overrides)
+    return VisitorLog.objects.create(**defaults)
+
+
+@pytest.mark.django_db
+def test_middleware_tracks_portfolio_visit(client):
+    assert VisitorLog.objects.count() == 0
+    client.get('/')
+    assert VisitorLog.objects.count() == 1
+    visit = VisitorLog.objects.first()
+    assert visit.landing_page == '/'
+    # Django's test client uses 127.0.0.1, a loopback address geoip.lookup()
+    # deliberately skips — country/region/city should stay blank, not error.
+    assert visit.country == ''
+
+
+@pytest.mark.django_db
+def test_middleware_does_not_track_private_paths(staff_client):
+    staff_client.get('/tracker/')
+    staff_client.get('/admin/')
+    staff_client.get('/accounts/login/')
+    assert VisitorLog.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_middleware_same_session_updates_existing_row(client):
+    client.get('/')
+    client.get('/')
+    client.get('/')
+    assert VisitorLog.objects.count() == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('referrer,expected', [
+    ('', VisitorLog.ReferralSource.DIRECT),
+    ('https://www.google.com/search?q=reza', VisitorLog.ReferralSource.GOOGLE),
+    ('https://www.linkedin.com/feed/', VisitorLog.ReferralSource.LINKEDIN),
+    ('https://github.com/rezarobotics65', VisitorLog.ReferralSource.GITHUB),
+    ('https://news.ycombinator.com/', VisitorLog.ReferralSource.OTHER),
+])
+def test_classify_referral(rf, referrer, expected):
+    request = rf.get('/')  # RequestFactory defaults HTTP_HOST to 'testserver'
+    assert classify_referral(referrer, request) == expected
+
+
+@pytest.mark.django_db
+def test_kpi_cards_counts_are_scoped_to_the_right_period():
+    today = timezone.localdate()
+    _make_visit(visit_time=timezone.now(), last_seen=timezone.now())
+    old_visit_time = timezone.make_aware(timezone.datetime(today.year - 1, 1, 1))
+    _make_visit(visit_time=old_visit_time, last_seen=old_visit_time, ip_address='1.1.1.1')
+
+    kpis = analytics.kpi_cards()
+    assert kpis['total_visitors'] == 2
+    assert kpis['today_visitors'] == 1
+    assert kpis['year_visitors'] == 1
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('url', [
+    '/tracker/api/visitor-log', '/tracker/api/visitor-summary',
+    '/tracker/api/download-log', '/tracker/api/download-summary',
+])
+def test_visitor_api_endpoints_require_staff(client, url):
+    response = client.get(url)
+    assert response.status_code == 302
+    assert response.url.startswith('/accounts/login/')
+
+
+@pytest.mark.django_db
+def test_visitor_api_endpoints_work_for_staff(staff_client):
+    _make_visit()
+    response = staff_client.get('/tracker/api/visitor-summary')
+    assert response.status_code == 200
+    assert response['Content-Type'] == 'application/json'
+    assert response.json()['kpis']['total_visitors'] == 1
+
+
+@pytest.mark.django_db
+def test_visitor_log_csv_export_requires_staff(client):
+    # NB: don't also request staff_client here — that fixture force_logins
+    # the *same* underlying `client` object, defeating an anonymous check.
+    response = client.get('/tracker/visitor-log/export/csv/')
+    assert response.status_code == 302
+    assert response.url.startswith('/accounts/login/')
+
+
+@pytest.mark.django_db
+def test_visitor_log_csv_export_returns_csv_for_staff(staff_client):
+    _make_visit()
+    response = staff_client.get('/tracker/visitor-log/export/csv/')
+    assert response.status_code == 200
+    assert response['Content-Type'] == 'text/csv'
+    assert b'8.8.8.8' in response.content
+
+
+@pytest.mark.django_db
+def test_visitor_log_excel_export_returns_xlsx(staff_client):
+    _make_visit()
+    response = staff_client.get('/tracker/visitor-log/export/excel/')
+    assert response.status_code == 200
+    assert 'spreadsheetml' in response['Content-Type']
+
+
+@pytest.mark.django_db
+def test_visitor_log_page_shows_kpis_and_respects_search(staff_client):
+    _make_visit(country='Malaysia', city='Kuala Lumpur')
+    _make_visit(ip_address='1.1.1.1', country='Australia', city='Sydney')
+
+    response = staff_client.get('/tracker/visitor-log/')
+    assert response.status_code == 200
+    assert b'Kuala Lumpur' in response.content
+    assert b'Sydney' in response.content
+
+    filtered = staff_client.get('/tracker/visitor-log/?q=Sydney')
+    assert b'Sydney' in filtered.content
+    assert b'Kuala Lumpur' not in filtered.content
+
+
+@pytest.mark.django_db
+def test_visitor_log_row_shows_cv_download_yes(staff_client):
+    _make_visit(ip_address='9.9.9.9')
+    CVDownloadLog.objects.create(visitor_ip='9.9.9.9', cv_version='resume.pdf')
+    response = staff_client.get('/tracker/visitor-log/')
+    assert b'Yes' in response.content

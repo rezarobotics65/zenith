@@ -18,6 +18,7 @@
       <a href="{% url 'tracker:kpi_timetable' %}" {% if request.resolver_match.url_name == 'kpi_timetable' %}aria-current="page"{% endif %}>KPI &amp; Timetable</a>
       <a href="{% url 'tracker:activity_log' %}" {% if request.resolver_match.url_name == 'activity_log' %}aria-current="page"{% endif %}>Activity Log</a>
       <a href="{% url 'tracker:cv_list' %}" {% if request.resolver_match.url_name == 'cv_list' %}aria-current="page"{% endif %}>CV</a>
+      <a href="{% url 'tracker:visitor_log' %}" {% if request.resolver_match.url_name == 'visitor_log' %}aria-current="page"{% endif %}>Visitor Log</a>
       <a href="/admin/">Admin</a>
     </nav>
     <form method="post" action="{% url 'logout' %}" class="tracker-logout">

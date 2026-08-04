@@ -5,6 +5,7 @@ from .models import (
     CareerObjective,
     Certification,
     Course,
+    CVDownloadLog,
     KPI,
     MonthlyCommitment,
     MonthlyPlan,
@@ -12,6 +13,7 @@ from .models import (
     Resume,
     Skill,
     SkillDomain,
+    VisitorLog,
 )
 
 
@@ -165,3 +167,32 @@ class ResumeAdmin(admin.ModelAdmin):
     list_display = ('filename', 'is_default', 'created_at')
     list_editable = ('is_default',)
     ordering = ('-created_at',)
+
+
+class ReadOnlyLogAdmin(admin.ModelAdmin):
+    """Base for auto-generated log tables — viewable/searchable/filterable in
+    admin for spot-checks, but never manually created or edited there."""
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(VisitorLog)
+class VisitorLogAdmin(ReadOnlyLogAdmin):
+    list_display = ('visit_time', 'ip_address', 'country', 'city', 'device', 'referral_source', 'landing_page')
+    list_filter = ('device', 'referral_source', 'country')
+    search_fields = ('ip_address', 'country', 'region', 'city', 'landing_page')
+    date_hierarchy = 'visit_time'
+    ordering = ('-visit_time',)
+
+
+@admin.register(CVDownloadLog)
+class CVDownloadLogAdmin(ReadOnlyLogAdmin):
+    list_display = ('download_time', 'visitor_ip', 'country', 'city', 'device', 'download_source')
+    list_filter = ('device', 'country')
+    search_fields = ('visitor_ip', 'country', 'region', 'city', 'cv_version')
+    date_hierarchy = 'download_time'
+    ordering = ('-download_time',)

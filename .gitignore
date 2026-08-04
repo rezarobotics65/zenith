@@ -20,6 +20,7 @@ db.sqlite3
 *.pem
 *.key
 gh_deploy_key*
+zenith_deploy_key*
 
 media/*
 !media/.gitkeep

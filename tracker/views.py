@@ -1,3 +1,4 @@
+import csv
 from datetime import date
 from decimal import Decimal, InvalidOperation
 
@@ -5,13 +6,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from . import analytics
 from . import forms as tracker_forms
 from . import services
 from .models import (
@@ -19,6 +21,7 @@ from .models import (
     CareerObjective,
     Certification,
     Course,
+    CVDownloadLog,
     KPI,
     MonthlyCommitment,
     MonthlyPlan,
@@ -430,9 +433,14 @@ def quick_set_course_hours(request, pk):
     not add to it. But Course.hours_logged is a computed sum over
     ActivityLog (never a raw field, and other entries for this course may
     already exist from the Activity Log page or admin), so "setting" it
-    means logging a single adjustment entry for the difference, rather than
-    deleting and replacing history. A no-op (typed value == current total)
-    creates nothing.
+    means logging an adjustment entry for the difference, rather than
+    deleting and replacing history.
+
+    Re-typing a new total for the same course on the same day updates that
+    day's adjustment entry in place instead of stacking another one — the
+    log should show the final value from a correction session, not every
+    intermediate value typed on the way there. Entries from other days, or
+    logged manually elsewhere, are never touched.
     """
     course = get_object_or_404(Course, pk=pk)
     raw_hours = (request.POST.get('hours') or '').strip()
@@ -448,15 +456,30 @@ def quick_set_course_hours(request, pk):
         messages.error(request, 'Enter a number of hours (0 or more).')
         return redirect(_safe_next(request, 'tracker:kpi_timetable'))
 
-    delta = target_total - course.hours_logged
-    if delta != 0:
-        ActivityLog.objects.create(
-            date=timezone.localdate(),
-            activity_type=ActivityLog.ActivityType.STUDY,
-            title=f'Hours total set via KPI & Timetable — {course.name}',
-            hours=delta,
-            course=course,
-        )
+    today = timezone.localdate()
+    title = f'Hours total set via KPI & Timetable — {course.name}'
+    existing = ActivityLog.objects.filter(
+        course=course, date=today, activity_type=ActivityLog.ActivityType.STUDY, title=title,
+    ).first()
+
+    if existing:
+        other_hours = course.hours_logged - existing.hours
+        new_delta = target_total - other_hours
+        if new_delta == 0:
+            existing.delete()
+        else:
+            existing.hours = new_delta
+            existing.save(update_fields=['hours', 'updated_at'])
+    else:
+        delta = target_total - course.hours_logged
+        if delta != 0:
+            ActivityLog.objects.create(
+                date=today,
+                activity_type=ActivityLog.ActivityType.STUDY,
+                title=title,
+                hours=delta,
+                course=course,
+            )
 
     if _is_ajax(request):
         return JsonResponse({
@@ -484,3 +507,230 @@ def set_default_resume(request, pk):
     resume.save()  # Resume.save() unsets is_default on every other row.
     messages.success(request, f'{resume.filename} set as default.')
     return redirect(_safe_next(request, 'tracker:cv_list'))
+
+
+# ---------------------------------------------------------------------------
+# Visitor Log — portfolio traffic + CV download analytics.
+# ---------------------------------------------------------------------------
+
+VISITOR_SORT_FIELDS = {
+    'visit_time', 'ip_address', 'country', 'region', 'city',
+    'browser', 'operating_system', 'device', 'referral_source', 'landing_page',
+}
+DOWNLOAD_SORT_FIELDS = {'download_time', 'country', 'region', 'city', 'browser', 'device', 'cv_version'}
+
+
+def _apply_sort(qs, sort_param, allowed_fields, default):
+    field = (sort_param or default).lstrip('-')
+    if field not in allowed_fields:
+        return qs.order_by(default)
+    return qs.order_by(sort_param if sort_param else default)
+
+
+def _paginate(request, qs, param_name, per_page=25):
+    paginator = Paginator(qs, per_page)
+    page_number = request.GET.get(param_name, 1)
+    return paginator.get_page(page_number)
+
+
+def _querystring_without(request, *keys):
+    qs = request.GET.copy()
+    for key in keys:
+        qs.pop(key, None)
+    return qs.urlencode()
+
+
+@tracker_staff_required
+def visitor_log(request):
+    start, end, range_label = analytics.resolve_date_range(request.GET)
+    search = request.GET.get('q', '').strip()
+
+    visitors_qs = _apply_sort(
+        analytics.filter_visitor_logs(start, end, search),
+        request.GET.get('sort'), VISITOR_SORT_FIELDS, '-visit_time',
+    )
+    downloads_qs = _apply_sort(
+        analytics.filter_cv_downloads(start, end, search),
+        request.GET.get('dsort'), DOWNLOAD_SORT_FIELDS, '-download_time',
+    )
+    visitors_page = _paginate(request, visitors_qs, 'page')
+    # Approximate "did this visit lead to a download" by matching IP within
+    # the same range — VisitorLog and CVDownloadLog aren't directly linked.
+    page_ips = {v.ip_address for v in visitors_page}
+    downloaded_ips = set(
+        CVDownloadLog.objects.filter(download_time__gte=start, download_time__lt=end, visitor_ip__in=page_ips)
+        .values_list('visitor_ip', flat=True)
+    ) if page_ips else set()
+
+    context = {
+        'kpis': analytics.kpi_cards(),
+        'charts': analytics.dashboard_charts(start, end),
+        'range_label': range_label,
+        'qs_sort_base': _querystring_without(request, 'sort', 'page'),
+        'qs_dsort_base': _querystring_without(request, 'dsort', 'dpage'),
+        'qs_page_base': _querystring_without(request, 'page'),
+        'qs_dpage_base': _querystring_without(request, 'dpage'),
+        'current_sort': request.GET.get('sort', '-visit_time'),
+        'current_dsort': request.GET.get('dsort', '-download_time'),
+        'filter_choices': analytics.FILTER_CHOICES,
+        'active_filter': request.GET.get('filter', 'last30'),
+        'search': search,
+        'visitors_page': visitors_page,
+        'downloads_page': _paginate(request, downloads_qs, 'dpage'),
+        'downloaded_ips': downloaded_ips,
+        'visitor_columns': [
+            ('visit_time', 'Date/Time'), ('ip_address', 'IP Address'), ('country', 'Country'),
+            ('region', 'Region'), ('city', 'City'), ('browser', 'Browser'), ('operating_system', 'OS'),
+            ('device', 'Device'), ('referral_source', 'Referral'), ('landing_page', 'Landing Page'),
+        ],
+        'download_columns': [
+            ('download_time', 'Download Time'), ('country', 'Country'), ('region', 'Region'), ('city', 'City'),
+            ('browser', 'Browser'), ('device', 'Device'), ('cv_version', 'CV Version'), ('download_source', 'Source'),
+        ],
+    }
+    return render(request, 'tracker/visitor_log.html', context)
+
+
+def _visitor_export_rows(request):
+    start, end, _ = analytics.resolve_date_range(request.GET)
+    search = request.GET.get('q', '').strip()
+    return analytics.filter_visitor_logs(start, end, search)
+
+
+def _download_export_rows(request):
+    start, end, _ = analytics.resolve_date_range(request.GET)
+    search = request.GET.get('q', '').strip()
+    return analytics.filter_cv_downloads(start, end, search)
+
+
+VISITOR_EXPORT_HEADERS = [
+    'Date/Time', 'IP Address', 'Country', 'Region', 'City', 'Timezone',
+    'Browser', 'OS', 'Device', 'Referral', 'Landing Page', 'Session Duration (s)',
+]
+
+
+def _visitor_export_row(v):
+    return [
+        timezone.localtime(v.visit_time).strftime('%Y-%m-%d %H:%M:%S'), v.ip_address, v.country, v.region, v.city,
+        v.timezone, v.browser, v.operating_system, v.get_device_display(), v.get_referral_source_display(),
+        v.landing_page, int(v.session_duration.total_seconds()),
+    ]
+
+
+DOWNLOAD_EXPORT_HEADERS = ['Download Time', 'IP Address', 'Country', 'Region', 'City', 'Browser', 'Device', 'CV Version', 'Source']
+
+
+def _download_export_row(d):
+    return [
+        timezone.localtime(d.download_time).strftime('%Y-%m-%d %H:%M:%S'), d.visitor_ip, d.country, d.region,
+        d.city, d.browser, d.get_device_display(), d.cv_version, d.download_source,
+    ]
+
+
+@tracker_staff_required
+def visitor_log_export_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="visitor-log.csv"'
+    writer = csv.writer(response)
+    writer.writerow(VISITOR_EXPORT_HEADERS)
+    for v in _visitor_export_rows(request):
+        writer.writerow(_visitor_export_row(v))
+    return response
+
+
+@tracker_staff_required
+def download_log_export_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="cv-downloads.csv"'
+    writer = csv.writer(response)
+    writer.writerow(DOWNLOAD_EXPORT_HEADERS)
+    for d in _download_export_rows(request):
+        writer.writerow(_download_export_row(d))
+    return response
+
+
+def _xlsx_response(filename, headers, rows):
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    ws = wb.active
+    ws.append(headers)
+    for row in rows:
+        ws.append([str(cell) for cell in row])
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    return response
+
+
+@tracker_staff_required
+def visitor_log_export_excel(request):
+    rows = [_visitor_export_row(v) for v in _visitor_export_rows(request)]
+    return _xlsx_response('visitor-log.xlsx', VISITOR_EXPORT_HEADERS, rows)
+
+
+@tracker_staff_required
+def download_log_export_excel(request):
+    rows = [_download_export_row(d) for d in _download_export_rows(request)]
+    return _xlsx_response('cv-downloads.xlsx', DOWNLOAD_EXPORT_HEADERS, rows)
+
+
+# --- JSON APIs (staff-only — this is visitor-level data, never public) -----
+
+@tracker_staff_required
+def api_visitor_summary(request):
+    start, end, range_label = analytics.resolve_date_range(request.GET)
+    return JsonResponse({'range': range_label, 'kpis': analytics.kpi_cards(), 'charts': analytics.dashboard_charts(start, end)})
+
+
+@tracker_staff_required
+def api_download_summary(request):
+    start, end, range_label = analytics.resolve_date_range(request.GET)
+    kpis = analytics.kpi_cards()
+    return JsonResponse({
+        'range': range_label,
+        'total_downloads': kpis['total_downloads'],
+        'today_downloads': kpis['today_downloads'],
+        'month_downloads': kpis['month_downloads'],
+        'year_downloads': kpis['year_downloads'],
+        'daily_downloads': analytics.daily_cv_downloads(start, end),
+        'monthly_downloads': analytics.monthly_cv_downloads(start, end),
+        'by_country': analytics.downloads_by_country(start, end),
+    })
+
+
+@tracker_staff_required
+def api_visitor_log(request):
+    page = _paginate(request, _visitor_export_rows(request), 'page')
+    return JsonResponse({
+        'count': page.paginator.count,
+        'page': page.number,
+        'num_pages': page.paginator.num_pages,
+        'results': [
+            {
+                'visit_time': v.visit_time.isoformat(), 'ip_address': v.ip_address, 'country': v.country,
+                'region': v.region, 'city': v.city, 'timezone': v.timezone, 'browser': v.browser,
+                'operating_system': v.operating_system, 'device': v.device, 'referral_source': v.referral_source,
+                'landing_page': v.landing_page, 'session_duration_seconds': int(v.session_duration.total_seconds()),
+            }
+            for v in page.object_list
+        ],
+    })
+
+
+@tracker_staff_required
+def api_download_log(request):
+    page = _paginate(request, _download_export_rows(request), 'page')
+    return JsonResponse({
+        'count': page.paginator.count,
+        'page': page.number,
+        'num_pages': page.paginator.num_pages,
+        'results': [
+            {
+                'download_time': d.download_time.isoformat(), 'visitor_ip': d.visitor_ip, 'country': d.country,
+                'region': d.region, 'city': d.city, 'browser': d.browser, 'device': d.device,
+                'cv_version': d.cv_version, 'download_source': d.download_source,
+            }
+            for d in page.object_list
+        ],
+    })

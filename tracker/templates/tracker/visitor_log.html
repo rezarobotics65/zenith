@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Visitor Log — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Visitor Log</h1>
+  <p class="page-header__meta">
+    Portfolio traffic and CV download analytics.
+    <span class="pill pill--green" style="margin-left:8px;">● {{ kpis.active_now }} active now</span>
+  </p>
+</div>
+
+<!-- Overview cards (Section 2) -->
+<div class="metric-row">
+  <div class="metric-card">
+    <div class="metric-card__label">Total Visitors</div>
+    <div class="metric-card__value">{{ kpis.total_visitors }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">Today's Visitors</div>
+    <div class="metric-card__value">{{ kpis.today_visitors }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">This Month Visitors</div>
+    <div class="metric-card__value">{{ kpis.month_visitors }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">This Year Visitors</div>
+    <div class="metric-card__value">{{ kpis.year_visitors }}</div>
+  </div>
+</div>
+<div class="metric-row">
+  <div class="metric-card">
+    <div class="metric-card__label">Total CV Downloads</div>
+    <div class="metric-card__value">{{ kpis.total_downloads }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">Today's CV Downloads</div>
+    <div class="metric-card__value">{{ kpis.today_downloads }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">Monthly CV Downloads</div>
+    <div class="metric-card__value">{{ kpis.month_downloads }}</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">Yearly CV Downloads</div>
+    <div class="metric-card__value">{{ kpis.year_downloads }}</div>
+  </div>
+</div>
+
+<!-- Filters (Section 5) -->
+<section class="section">
+  <form method="get" class="filter-form">
+    <div class="form-row">
+      <label for="id_filter">Range</label>
+      <select name="filter" id="id_filter">
+        {% for key, label in filter_choices %}
+          <option value="{{ key }}" {% if key == active_filter %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="id_start_date">Custom from</label>
+      <input type="date" name="start_date" id="id_start_date" value="{{ request.GET.start_date }}">
+    </div>
+    <div class="form-row">
+      <label for="id_end_date">Custom to</label>
+      <input type="date" name="end_date" id="id_end_date" value="{{ request.GET.end_date }}">
+    </div>
+    <div class="form-row">
+      <label for="id_q">Search</label>
+      <input type="search" name="q" id="id_q" value="{{ search }}" placeholder="IP, country, browser…">
+    </div>
+    <button type="submit" class="button button--primary">Apply filters</button>
+  </form>
+  <p class="page-header__meta">Charts and tables below cover: <strong>{{ range_label }}</strong>. The overview cards above always show today/month/year regardless of this filter.</p>
+</section>
+
+<!-- Charts (Section 6) -->
+<section class="section">
+  <h2>Analytics</h2>
+  <div class="chart-grid">
+
+    <div class="card">
+      <h3>Daily Visitors Trend</h3>
+      <div class="chart-container"><canvas id="daily-visitors-chart" height="200" role="img" aria-label="Line chart of daily visitors"></canvas></div>
+      {{ charts.daily_visitors|json_script:"daily-visitors-data" }}
+      <details class="chart-fallback" id="daily-visitors-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Date</th><th>Visitors</th></tr></thead>
+          <tbody>{% for label, value in charts.daily_visitors.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Daily CV Downloads</h3>
+      <div class="chart-container"><canvas id="daily-downloads-chart" height="200" role="img" aria-label="Line chart of daily CV downloads"></canvas></div>
+      {{ charts.daily_downloads|json_script:"daily-downloads-data" }}
+      <details class="chart-fallback" id="daily-downloads-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Date</th><th>Downloads</th></tr></thead>
+          <tbody>{% for label, value in charts.daily_downloads.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Visitors by Country</h3>
+      <div class="chart-container"><canvas id="by-country-chart" height="200" role="img" aria-label="Horizontal bar chart of visitors by country"></canvas></div>
+      {{ charts.by_country|json_script:"by-country-data" }}
+      <details class="chart-fallback" id="by-country-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Country</th><th>Visitors</th></tr></thead>
+          <tbody>{% for label, value in charts.by_country.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Visitors by Region / State</h3>
+      <div class="chart-container"><canvas id="by-region-chart" height="200" role="img" aria-label="Horizontal bar chart of visitors by region"></canvas></div>
+      {{ charts.by_region|json_script:"by-region-data" }}
+      <details class="chart-fallback" id="by-region-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Region</th><th>Visitors</th></tr></thead>
+          <tbody>{% for label, value in charts.by_region.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Visitors by Device</h3>
+      <div class="chart-container"><canvas id="by-device-chart" height="200" role="img" aria-label="Pie chart of visitors by device type"></canvas></div>
+      {{ charts.by_device|json_script:"by-device-data" }}
+      <details class="chart-fallback" id="by-device-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Device</th><th>Visitors</th></tr></thead>
+          <tbody>{% for label, value in charts.by_device.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Visitor Sources</h3>
+      <div class="chart-container"><canvas id="by-source-chart" height="200" role="img" aria-label="Pie chart of visitor referral sources"></canvas></div>
+      {{ charts.by_source|json_script:"by-source-data" }}
+      <details class="chart-fallback" id="by-source-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Source</th><th>Visitors</th></tr></thead>
+          <tbody>{% for label, value in charts.by_source.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Monthly CV Downloads</h3>
+      <div class="chart-container"><canvas id="monthly-downloads-chart" height="200" role="img" aria-label="Bar chart of monthly CV downloads"></canvas></div>
+      {{ charts.monthly_downloads|json_script:"monthly-downloads-data" }}
+      <details class="chart-fallback" id="monthly-downloads-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Month</th><th>Downloads</th></tr></thead>
+          <tbody>{% for label, value in charts.monthly_downloads.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+    <div class="card">
+      <h3>Downloads by Country</h3>
+      <div class="chart-container"><canvas id="downloads-by-country-chart" height="200" role="img" aria-label="Bar chart of CV downloads by country"></canvas></div>
+      {{ charts.downloads_by_country|json_script:"downloads-by-country-data" }}
+      <details class="chart-fallback" id="downloads-by-country-fallback" open>
+        <summary>View as table</summary>
+        <table class="data-table"><thead><tr><th>Country</th><th>Downloads</th></tr></thead>
+          <tbody>{% for label, value in charts.downloads_by_country.rows %}<tr><td>{{ label }}</td><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </details>
+    </div>
+
+  </div>
+</section>
+
+<!-- Visitor data table (Section 7) -->
+<section class="section">
+  <div class="monthly-plan-block__header">
+    <h2>Visitor History</h2>
+    <div class="row-actions">
+      <a class="button button--small" href="{% url 'tracker:visitor_log_export_csv' %}?{{ qs_page_base }}">Export CSV</a>
+      <a class="button button--small" href="{% url 'tracker:visitor_log_export_excel' %}?{{ qs_page_base }}">Export Excel</a>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% for field, label in visitor_columns %}
+            <th><a href="?{{ qs_sort_base }}&sort={% if current_sort == field %}-{% endif %}{{ field }}">{{ label }}{% if current_sort == field %} ▲{% elif current_sort == '-'|add:field %} ▼{% endif %}</a></th>
+          {% endfor %}
+          <th>CV Download</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in visitors_page %}
+        <tr>
+          <td>{{ v.visit_time|date:"d M Y H:i" }}</td>
+          <td>{{ v.ip_address }}</td>
+          <td>{{ v.country|default:"—" }}</td>
+          <td>{{ v.region|default:"—" }}</td>
+          <td>{{ v.city|default:"—" }}</td>
+          <td>{{ v.browser|default:"—" }}</td>
+          <td>{{ v.operating_system|default:"—" }}</td>
+          <td>{{ v.get_device_display }}</td>
+          <td>{{ v.get_referral_source_display }}</td>
+          <td>{{ v.landing_page }}</td>
+          <td>{% if v.ip_address in downloaded_ips %}<span class="pill pill--green">Yes</span>{% else %}<span class="pill pill--neutral">No</span>{% endif %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="11">No visits recorded for this range yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "tracker/_pagination.html" with page=visitors_page qs_base=qs_page_base page_param="page" %}
+</section>
+
+<!-- CV download table (Section 8) -->
+<section class="section">
+  <div class="monthly-plan-block__header">
+    <h2>CV Download History</h2>
+    <div class="row-actions">
+      <a class="button button--small" href="{% url 'tracker:download_log_export_csv' %}?{{ qs_dpage_base }}">Export CSV</a>
+      <a class="button button--small" href="{% url 'tracker:download_log_export_excel' %}?{{ qs_dpage_base }}">Export Excel</a>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% for field, label in download_columns %}
+            <th><a href="?{{ qs_dsort_base }}&dsort={% if current_dsort == field %}-{% endif %}{{ field }}">{{ label }}{% if current_dsort == field %} ▲{% elif current_dsort == '-'|add:field %} ▼{% endif %}</a></th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in downloads_page %}
+        <tr>
+          <td>{{ d.download_time|date:"d M Y H:i" }}</td>
+          <td>{{ d.country|default:"—" }}</td>
+          <td>{{ d.region|default:"—" }}</td>
+          <td>{{ d.city|default:"—" }}</td>
+          <td>{{ d.browser|default:"—" }}</td>
+          <td>{{ d.get_device_display }}</td>
+          <td>{{ d.cv_version }}</td>
+          <td>{{ d.download_source }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">No CV downloads recorded for this range yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "tracker/_pagination.html" with page=downloads_page qs_base=qs_dpage_base page_param="dpage" %}
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% if page.has_other_pages %}
+<nav class="calendar-nav" aria-label="Pagination">
+  {% if page.has_previous %}
+    <a class="button button--small" href="?{{ qs_base }}&{{ page_param }}={{ page.previous_page_number }}">&larr; Previous</a>
+  {% endif %}
+  <span class="page-header__meta">Page {{ page.number }} of {{ page.paginator.num_pages }} ({{ page.paginator.count }} total)</span>
+  {% if page.has_next %}
+    <a class="button button--small" href="?{{ qs_base }}&{{ page_param }}={{ page.next_page_number }}">Next &rarr;</a>
+  {% endif %}
+</nav>
+{% endif %}

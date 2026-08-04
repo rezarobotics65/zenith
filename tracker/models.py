@@ -439,3 +439,76 @@ class Resume(models.Model):
         super().save(*args, **kwargs)
         if self.is_default:
             Resume.objects.exclude(pk=self.pk).update(is_default=False)
+
+
+class VisitorLog(models.Model):
+    """One row per browser session on the public portfolio, created by
+    VisitorTrackingMiddleware. `last_seen` is updated on later pageviews in
+    the same session so session_duration is a real (if approximate) figure
+    rather than always zero. Only public IP/browser/geo data is stored —
+    never anything that identifies a person (Section 13 of the brief)."""
+
+    class Device(models.TextChoices):
+        DESKTOP = 'DESKTOP', 'Desktop'
+        MOBILE = 'MOBILE', 'Mobile'
+        TABLET = 'TABLET', 'Tablet'
+        OTHER = 'OTHER', 'Other'
+
+    class ReferralSource(models.TextChoices):
+        DIRECT = 'DIRECT', 'Direct'
+        GOOGLE = 'GOOGLE', 'Google'
+        LINKEDIN = 'LINKEDIN', 'LinkedIn'
+        GITHUB = 'GITHUB', 'GitHub'
+        OTHER = 'OTHER', 'Other'
+
+    visit_time = models.DateTimeField(db_index=True)
+    last_seen = models.DateTimeField()
+    ip_address = models.GenericIPAddressField(db_index=True)
+    country = models.CharField(max_length=80, blank=True, db_index=True)
+    region = models.CharField(max_length=80, blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    timezone = models.CharField(max_length=60, blank=True)
+    browser = models.CharField(max_length=80, blank=True)
+    operating_system = models.CharField(max_length=80, blank=True)
+    device = models.CharField(max_length=10, choices=Device.choices, default=Device.OTHER, db_index=True)
+    referrer = models.URLField(max_length=500, blank=True)
+    referral_source = models.CharField(max_length=10, choices=ReferralSource.choices, default=ReferralSource.DIRECT, db_index=True)
+    landing_page = models.CharField(max_length=300, blank=True)
+    session_key = models.CharField(max_length=40, blank=True, db_index=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-visit_time']
+        indexes = [models.Index(fields=['visit_time', 'device'])]
+
+    def __str__(self):
+        return f'{self.ip_address} @ {self.visit_time:%Y-%m-%d %H:%M}'
+
+    @property
+    def session_duration(self):
+        return self.last_seen - self.visit_time
+
+
+class CVDownloadLog(models.Model):
+    """One row per CV download from the public portfolio, created by
+    portfolio.views.download_cv."""
+
+    download_time = models.DateTimeField(auto_now_add=True, db_index=True)
+    visitor_ip = models.GenericIPAddressField()
+    country = models.CharField(max_length=80, blank=True)
+    region = models.CharField(max_length=80, blank=True)
+    city = models.CharField(max_length=80, blank=True)
+    browser = models.CharField(max_length=80, blank=True)
+    device = models.CharField(max_length=10, choices=VisitorLog.Device.choices, default=VisitorLog.Device.OTHER)
+    cv_version = models.CharField(max_length=200, blank=True, help_text='Filename of the CV at download time')
+    download_source = models.CharField(max_length=100, blank=True, help_text='Which button/page triggered the download')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-download_time']
+
+    def __str__(self):
+        return f'{self.visitor_ip} @ {self.download_time:%Y-%m-%d %H:%M}'

@@ -13,7 +13,16 @@ from datetime import date
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from portfolio.models import Achievement, CaseStudy, Education, Experience, Language, Profile
+from portfolio.models import (
+    Achievement,
+    CaseStudy,
+    CoreExpertise,
+    Education,
+    Experience,
+    Language,
+    Profile,
+    TechTool,
+)
 
 
 def d(year, month, day=1):
@@ -34,6 +43,8 @@ class Command(BaseCommand):
             Experience.objects.all().delete()
             Education.objects.all().delete()
             Language.objects.all().delete()
+            CoreExpertise.objects.all().delete()
+            TechTool.objects.all().delete()
             Profile.objects.all().delete()
 
         with transaction.atomic():
@@ -42,6 +53,8 @@ class Command(BaseCommand):
             experiences = self.seed_experience()
             self.seed_education()
             self.seed_case_studies(experiences)
+            self.seed_core_expertise()
+            self.seed_tech_tools()
 
         self.stdout.write(self.style.SUCCESS('seed_portfolio complete.'))
 
@@ -197,6 +210,7 @@ class Command(BaseCommand):
                 title='Kuala Lumpur smart traffic — 600+ intersections, 60% incident reduction',
                 slug='kl-smart-traffic', related_experience=sena, order=1,
                 headline_metric='60% fewer incidents across 600+ AI-managed intersections',
+                tech_tags='Computer Vision, IoT, Python, OpenCV',
                 situation='Draft: describe the city-scale traffic management challenge.',
                 task='Draft: describe scope owned as Project Manager.',
                 action='Draft: describe the AI-managed intersection rollout and governance approach.',
@@ -206,6 +220,7 @@ class Command(BaseCommand):
                 title='JCorp / KPJ — RM 1.2M AI solution engagement',
                 slug='jcorp-kpj-ai-engagement', related_experience=byond, order=2,
                 headline_metric='RM 1.2M enterprise AI engagement closed',
+                tech_tags='Enterprise AI, AI Strategy, Digital Human',
                 situation='Draft: describe the client context and opportunity.',
                 task='Draft: describe the commercial and delivery objectives.',
                 action='Draft: describe the solutioning and delivery approach.',
@@ -215,6 +230,7 @@ class Command(BaseCommand):
                 title='Project & Portfolio Management platform build',
                 slug='ppm-platform-build', related_experience=None, order=3,
                 headline_metric='',
+                tech_tags='Python, Django, PostgreSQL',
                 situation='Draft: describe the need for a PPM platform.',
                 task='Draft: describe the build objectives.',
                 action='Draft: describe the platform build approach.',
@@ -224,6 +240,7 @@ class Command(BaseCommand):
                 title='Cross-regional AI Digital Human (HoloMe) rollout',
                 slug='holome-cross-regional-rollout', related_experience=byond, order=4,
                 headline_metric='',
+                tech_tags='Digital Human, RAG, LangChain, OpenAI',
                 situation='Draft: describe the HoloMe programme context across regions.',
                 task='Draft: describe the rollout objectives.',
                 action='Draft: describe the cross-regional delivery approach.',
@@ -233,6 +250,7 @@ class Command(BaseCommand):
                 title='Vehicle Classification and Tracking System',
                 slug='vehicle-classification-tracking-system', related_experience=sena, order=5,
                 headline_metric='',
+                tech_tags='Python, OpenCV, Computer Vision, Deep Learning',
                 situation='Draft: describe the traffic-monitoring need this project addressed.',
                 task='Draft: describe the scope and objectives of the CV system.',
                 action=(
@@ -249,3 +267,45 @@ class Command(BaseCommand):
                 defaults=dict(is_published=False, date_completed=None, **defn),
             )
         self.stdout.write(f'{len(defs)} case study stubs seeded (unpublished).')
+
+    # ------------------------------------------------------------------
+    def seed_core_expertise(self):
+        defs = [
+            ('AI Delivery', CoreExpertise.Icon.AI_DELIVERY, 1),
+            ('Computer Vision', CoreExpertise.Icon.COMPUTER_VISION, 2),
+            ('Machine Learning', CoreExpertise.Icon.MACHINE_LEARNING, 3),
+            ('Digital Human', CoreExpertise.Icon.DIGITAL_HUMAN, 4),
+            ('RAG', CoreExpertise.Icon.RAG, 5),
+            ('IoT & Robotics', CoreExpertise.Icon.IOT_ROBOTICS, 6),
+            ('Cloud', CoreExpertise.Icon.CLOUD, 7),
+            ('Enterprise AI', CoreExpertise.Icon.ENTERPRISE_AI, 8),
+            ('Project Management', CoreExpertise.Icon.PROJECT_MANAGEMENT, 9),
+            ('Leadership', CoreExpertise.Icon.LEADERSHIP, 10),
+        ]
+        for name, icon, order in defs:
+            CoreExpertise.objects.update_or_create(name=name, defaults=dict(icon=icon, order=order))
+        self.stdout.write(f'{len(defs)} core expertise entries seeded.')
+
+    # ------------------------------------------------------------------
+    def seed_tech_tools(self):
+        defs = [
+            ('Python', 'Py', TechTool.IconKey.PYTHON, 1),
+            ('FastAPI', 'API', TechTool.IconKey.FASTAPI, 2),
+            ('React', 'Rct', TechTool.IconKey.REACT, 3),
+            ('TensorFlow', 'TF', TechTool.IconKey.TENSORFLOW, 4),
+            ('PyTorch', 'PyT', TechTool.IconKey.PYTORCH, 5),
+            ('OpenCV', 'CV', TechTool.IconKey.OPENCV, 6),
+            ('LangChain', 'LC', TechTool.IconKey.LANGCHAIN, 7),
+            ('OpenAI', 'AI', TechTool.IconKey.OPENAI, 8),
+            ('ChromaDB', 'Chr', TechTool.IconKey.CHROMADB, 9),
+            ('AWS', 'AWS', TechTool.IconKey.AWS, 10),
+            ('Azure', 'Az', TechTool.IconKey.AZURE, 11),
+            ('Docker', 'Dkr', TechTool.IconKey.DOCKER, 12),
+            ('PostgreSQL', 'PG', TechTool.IconKey.POSTGRESQL, 13),
+            ('MongoDB', 'Mgo', TechTool.IconKey.MONGODB, 14),
+            ('Git', 'Git', TechTool.IconKey.GIT, 15),
+            ('Linux', 'Lnx', TechTool.IconKey.LINUX, 16),
+        ]
+        for name, abbreviation, icon_key, order in defs:
+            TechTool.objects.update_or_create(name=name, defaults=dict(abbreviation=abbreviation, icon_key=icon_key, order=order))
+        self.stdout.write(f'{len(defs)} tools & technologies seeded.')

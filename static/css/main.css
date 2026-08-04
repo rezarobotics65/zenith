@@ -90,6 +90,46 @@
 }
 
 /* -------------------------------------------------------------------------
+   Shared dark palette — deep navy-black with an orange/violet accent pair
+   and soft glows (brand reference supplied by the author). Applied to the
+   public portfolio, the tracker, and the login screen alike so "Zenith
+   Tracker" reads as the same product as the portfolio it's linked from.
+   This intentionally drops the tracker's prior light/dark auto-switching
+   (CLAUDE.md's original "dark mode via prefers-color-scheme" default) in
+   favour of one fixed identity across the whole site — the author asked for
+   the tracker to match the portfolio's look directly.
+   ------------------------------------------------------------------------- */
+body.public-body, body.tracker-body, body.login-body {
+  /* Exact palette supplied by the author. */
+  --color-navy: #EDF2F4;          /* "Light" — headings/primary text on dark bg */
+  --color-navy-light: #FFFFFF;
+  --color-accent: #FF6F61;        /* Primary Orange */
+  --color-accent-bright: #FF6F61;
+  --color-accent-light: #FFB4A2;  /* Soft Orange */
+  --color-accent-2: #7C3AED;      /* Royal Purple */
+  --color-accent-2-light: #A78BFA;
+  --color-accent-2-deep: #5B21B6;
+  --color-info: #8D99AE;          /* Blue Grey */
+  --color-bg: #0B1120;
+  --color-surface: #1A1F2B;
+  --color-surface-2: #2B2D42;
+  --color-text: #EDF2F4;
+  --color-text-secondary: #A0AEC0;
+  --color-border: rgba(237, 242, 244, 0.1);
+  --color-red: #FB7185;
+  --color-amber: #FBBF24;
+  --color-green: #34D399;
+
+  --gradient-accent: linear-gradient(135deg, #FF6F61 0%, #FFB4A2 100%);
+  --gradient-purple: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%);
+  --gradient-ring: conic-gradient(from 180deg, #FF6F61, #7C3AED, #FFB4A2, #FF6F61);
+  --gradient-dark: linear-gradient(160deg, #0B1120 0%, #1A1F2B 100%);
+  --gradient-cta: linear-gradient(120deg, #1A1F2B 0%, #5B21B6 55%, #FF6F61 100%);
+  --glow-orange: 0 0 40px rgba(255, 111, 97, 0.35);
+  --glow-purple: 0 0 40px rgba(124, 58, 237, 0.4);
+}
+
+/* -------------------------------------------------------------------------
    Reset
    ------------------------------------------------------------------------- */
 
@@ -134,7 +174,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   position: absolute;
   left: -999px;
   top: 0;
-  background: var(--color-navy);
+  background: var(--color-accent);
   color: #fff;
   padding: var(--space-1) var(--space-2);
   z-index: 1000;
@@ -172,13 +212,14 @@ button, input, select, textarea { font: inherit; color: inherit; }
   cursor: pointer;
   font-weight: 500;
 }
-.button:hover { background: var(--color-navy); color: #fff; }
+.button:hover { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
 
 .button--primary {
-  background: var(--color-navy);
-  color: #fff;
+  background: var(--color-text);
+  border-color: var(--color-text);
+  color: var(--color-bg);
 }
-.button--primary:hover { background: var(--color-navy-light); color: #fff; }
+.button--primary:hover { opacity: 0.85; background: var(--color-text); color: var(--color-bg); }
 
 .button--accent {
   background: var(--gradient-accent);
@@ -407,6 +448,17 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .metric-card__sub { color: var(--color-text-secondary); font-size: 0.85rem; }
 
+/* Chart grid (Visitor Log analytics) */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+.chart-grid .card h3 { margin: 0 0 var(--space-2); font-size: 1rem; color: var(--color-navy); }
+@media (max-width: 900px) {
+  .chart-grid { grid-template-columns: 1fr; }
+}
+
 /* Progress bars */
 .progress-bar {
   height: 8px;
@@ -607,7 +659,7 @@ tr.just-error { animation: row-error-flash 1s ease-out; }
   justify-content: center;
   padding: var(--space-5) var(--space-3);
   overflow-y: auto;
-  background: color-mix(in srgb, var(--color-navy) 45%, transparent);
+  background: color-mix(in srgb, black 55%, transparent);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -668,7 +720,7 @@ body.modal-open { overflow: hidden; }
   border-left: 1px solid var(--color-border);
 }
 .calendar-view-toggle a:first-child { border-left: none; }
-.calendar-view-toggle a.is-active { background: var(--color-navy); color: var(--color-bg); }
+.calendar-view-toggle a.is-active { background: var(--color-text); color: var(--color-bg); }
 
 .calendar-nav {
   display: flex;

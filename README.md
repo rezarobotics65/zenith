@@ -89,12 +89,16 @@ applied so the build could proceed without blocking:
    salary fields are only ever rendered in `tracker/templates/tracker/dashboard.html`,
    which sits behind `staff_member_required`.
 
-One more worth flagging: `portfolio/views.py` imports `SkillDomain` and
-`Certification` from `tracker.models` (read-only) to render the portfolio's
-Skills and Certifications sections, since those models only exist in the
-tracker app. This is the one deliberate exception to "portfolio must never
-import from tracker" (Section 4) — no *model* in either app depends on the
-other, and tracker never imports portfolio.
+One more worth flagging: `portfolio/views.py` imports from `tracker` in two
+places — reading `SkillDomain`/`Certification` to render the portfolio's
+Skills and Certifications sections, and (as of the Visitor Log feature)
+writing a `CVDownloadLog` row plus calling `tracker.geoip`/
+`tracker.middleware` helpers from `download_cv()`. These are the deliberate
+exceptions to "portfolio must never import from tracker" (Section 4) — no
+portfolio *model* depends on tracker, and tracker never imports portfolio.
+`tracker.middleware.VisitorTrackingMiddleware` logs portfolio pageviews the
+same way, but from settings.py, not from a portfolio import — middleware
+sits above both apps rather than one importing the other.
 
 `tracker/management/commands/seed_roadmap.py`'s ~45 monthly commitments
 (Section 10.7) are synthesised from the KPIs, courses and certifications the

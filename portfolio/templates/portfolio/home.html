@@ -1,21 +1,26 @@
 {% extends "base_public.html" %}
-{% load static %}
+{% load static portfolio_extras %}
 
 {% block content %}
 <nav class="site-nav" aria-label="Section navigation">
   <div class="site-nav__inner">
-    <a class="site-nav__brand" href="#main-content">{% if profile %}{{ profile.full_name }}{% else %}Portfolio{% endif %}</a>
+    <a class="site-nav__brand" href="#main-content">
+      <span class="site-nav__mark">RY</span>
+      <span>{% if profile %}{{ profile.full_name }}{% else %}Portfolio{% endif %}</span>
+    </a>
     <div class="site-nav__links">
       <a href="#introduction">About</a>
       <a href="#skills">Skills</a>
-      <a href="#certifications">Certifications</a>
       <a href="#experience">Experience</a>
-      <a href="#case-studies">Case studies</a>
+      <a href="#case-studies">Case Studies</a>
+      <a href="#certifications">Certifications</a>
       <a href="#education">Education</a>
-      <a href="#languages">Languages</a>
       <a href="#contact">Contact</a>
     </div>
-    <a class="site-nav__staff-link" href="/accounts/login/">Zenith Tracker</a>
+    <div class="site-nav__cta-group">
+      <a class="site-nav__staff-link" href="/accounts/login/">Zenith Tracker</a>
+      <a class="button button--accent button--small" href="#contact">Let's Talk</a>
+    </div>
   </div>
 </nav>
 
@@ -28,65 +33,163 @@
 {% else %}
 
   <!-- 1. Hero -->
-  <section class="hero container" aria-label="Introduction">
-    <div class="hero__inner">
-      {% if profile.photo %}
-        <img class="hero__photo" src="{{ profile.photo.url }}" alt="Photo of {{ profile.full_name }}">
-      {% else %}
-        <div class="hero__photo-placeholder" role="img" aria-label="{{ profile.full_name }}"></div>
-      {% endif %}
-      <div class="hero__content">
-        <h1 class="hero__name">{{ profile.full_name }}</h1>
-        <p class="hero__headline">{{ profile.headline }}</p>
-        <p class="hero__tagline">{{ profile.tagline }}</p>
-        <div class="hero__meta">
-          <span>{{ profile.location }}</span>
-          <span>·</span>
-          <span>{{ profile.years_experience }}+ years experience</span>
-          {% if profile.open_to_work %}
-            <span class="hero__badge">Open to opportunities</span>
+  <section class="hero" aria-label="Introduction">
+    <div class="hero__map" aria-hidden="true">
+      <svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="mapArc1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--color-accent-2)"/>
+            <stop offset="100%" stop-color="var(--color-accent)"/>
+          </linearGradient>
+        </defs>
+        <g fill="var(--color-text-secondary)" opacity="0.4">
+          <circle cx="60" cy="80" r="1.6"/><circle cx="90" cy="70" r="1.6"/><circle cx="120" cy="90" r="1.6"/>
+          <circle cx="150" cy="60" r="1.6"/><circle cx="180" cy="100" r="1.6"/><circle cx="210" cy="75" r="1.6"/>
+          <circle cx="240" cy="110" r="1.6"/><circle cx="270" cy="85" r="1.6"/><circle cx="300" cy="120" r="1.6"/>
+          <circle cx="330" cy="95" r="1.6"/><circle cx="360" cy="130" r="1.6"/><circle cx="390" cy="105" r="1.6"/>
+          <circle cx="80" cy="150" r="1.6"/><circle cx="110" cy="170" r="1.6"/><circle cx="140" cy="145" r="1.6"/>
+          <circle cx="170" cy="180" r="1.6"/><circle cx="200" cy="155" r="1.6"/><circle cx="230" cy="190" r="1.6"/>
+          <circle cx="260" cy="165" r="1.6"/><circle cx="290" cy="200" r="1.6"/><circle cx="320" cy="175" r="1.6"/>
+          <circle cx="350" cy="210" r="1.6"/><circle cx="380" cy="185" r="1.6"/><circle cx="410" cy="220" r="1.6"/>
+          <circle cx="100" cy="240" r="1.6"/><circle cx="130" cy="260" r="1.6"/><circle cx="160" cy="235" r="1.6"/>
+          <circle cx="190" cy="270" r="1.6"/><circle cx="220" cy="245" r="1.6"/><circle cx="250" cy="280" r="1.6"/>
+          <circle cx="280" cy="255" r="1.6"/><circle cx="310" cy="290" r="1.6"/><circle cx="340" cy="265" r="1.6"/>
+          <circle cx="370" cy="300" r="1.6"/><circle cx="150" cy="320" r="1.6"/><circle cx="220" cy="330" r="1.6"/>
+          <circle cx="290" cy="315" r="1.6"/><circle cx="330" cy="340" r="1.6"/>
+        </g>
+        <path class="hero__map-arc" d="M330 175 Q 420 90 460 60" stroke="url(#mapArc1)" stroke-width="1.5" fill="none" opacity="0.8"/>
+        <path class="hero__map-arc" d="M330 175 Q 260 260 190 300" stroke="url(#mapArc1)" stroke-width="1.5" fill="none" opacity="0.8"/>
+        <path class="hero__map-arc" d="M330 175 Q 250 120 160 90" stroke="url(#mapArc1)" stroke-width="1.5" fill="none" opacity="0.6"/>
+        <circle class="hero__particle" cx="330" cy="175" r="4" fill="var(--color-accent)"/>
+        <circle class="hero__particle" cx="460" cy="60" r="3" fill="var(--color-accent-2)"/>
+        <circle class="hero__particle" cx="190" cy="300" r="3" fill="var(--color-accent-2)"/>
+        <circle class="hero__particle" cx="90" cy="70" r="2" fill="var(--color-accent-light)"/>
+        <circle class="hero__particle" cx="270" cy="85" r="2" fill="var(--color-accent-2-light)"/>
+        <circle class="hero__particle" cx="380" cy="185" r="2" fill="var(--color-accent-light)"/>
+      </svg>
+    </div>
+    <div class="container hero__inner">
+      <div class="hero__photo-col reveal-scale">
+        <div class="hero__photo-ring">
+          {% if profile.photo %}
+            <img class="hero__photo" src="{{ profile.photo.url }}" alt="Photo of {{ profile.full_name }}">
+          {% else %}
+            <div class="hero__photo-placeholder" role="img" aria-label="{{ profile.full_name }}">{{ profile.full_name|slice:":1" }}</div>
           {% endif %}
         </div>
+        <span class="hero__role-badge"><span class="hero__role-dot"></span>{{ profile.headline|upper }}</span>
+        <div class="hero__meta-col">
+          <span class="hero__meta-item"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-pin"></use></svg>{{ profile.location }}</span>
+          <span class="hero__meta-item"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-clock"></use></svg>{{ profile.years_experience }}+ Years Experience</span>
+        </div>
+      </div>
+      <div class="hero__content reveal-right">
+        <h1 class="hero__heading">{{ profile.tagline|accentize }}</h1>
+        <p class="hero__summary">{{ profile.introduction|truncatewords:32 }}</p>
         <div class="hero__ctas">
           {% if profile.cv_file %}
-            <a class="button button--accent" href="{{ profile.cv_file.url }}" download>Download CV</a>
+            <a class="button button--accent" href="{% url 'portfolio:download_cv' %}?src=hero" download>Download CV <svg class="icon icon--small" aria-hidden="true"><use href="#icon-download"></use></svg></a>
           {% endif %}
           {% if profile.linkedin_url %}
-            <a class="button" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">Connect on LinkedIn</a>
+            <a class="button" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">Connect on LinkedIn <svg class="icon icon--small" aria-hidden="true"><use href="#icon-external"></use></svg></a>
           {% endif %}
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 2. AI Inside band -->
+  <!-- 2. Stats band — "AI Inside" signal (Section 8, BUILD_BRIEF.md) -->
   {% if headline_achievements %}
-  <section class="ai-band" aria-label="AI specialisation highlights">
-    <div class="ai-band__inner">
-      <span class="ai-band__label">AI INSIDE</span>
-      <div class="ai-band__metrics">
+  <section class="stats-band" aria-label="Key achievements">
+    <div class="container">
+      <span class="stats-band__tag">● AI INSIDE</span>
+      <div class="stats-band__grid">
         {% for achievement in headline_achievements %}
-          <span class="ai-band__metric">
-            <span class="ai-band__metric-value">{{ achievement.metric_value }}</span>
-            <span class="ai-band__metric-label">{{ achievement.metric_label }}</span>
-          </span>
+          {% cycle 'box' 'shield' 'clock' 'award' as stat_icon silent %}
+          {% cycle '' 'purple' '' 'purple' as stat_variant silent %}
+          <div class="stat-card hover-lift reveal-up">
+            <span class="icon-circle {% if stat_variant %}icon-circle--purple{% endif %} icon-circle--sm">
+              <svg class="icon" aria-hidden="true"><use href="#icon-{{ stat_icon }}"></use></svg>
+            </span>
+            <span>
+              <span class="stat-card__value">{{ achievement.metric_value }}</span>
+              <span class="stat-card__label">{{ achievement.metric_label }}</span>
+            </span>
+          </div>
         {% endfor %}
       </div>
     </div>
   </section>
   {% endif %}
 
-  <!-- 3. Introduction -->
-  <section id="introduction" class="pf-section container">
-    <h2>Introduction</h2>
-    <div class="pf-section__intro" style="max-width: 78ch;">
-      {{ profile.introduction|linebreaks }}
+  <!-- 3. Core expertise -->
+  {% if core_expertise %}
+  <section class="pf-section container" aria-label="Core expertise">
+    <h2 class="reveal-up">Core Expertise</h2>
+    <div class="expertise-grid">
+      {% for item in core_expertise %}
+        {% cycle '' 'purple' '' '' 'purple' '' 'purple' '' '' 'purple' as expertise_variant silent %}
+        <div class="expertise-card hover-lift reveal-scale">
+          <span class="icon-circle {% if expertise_variant %}icon-circle--purple{% endif %}"><svg class="icon" aria-hidden="true"><use href="#icon-{{ item.icon|icon_slug }}"></use></svg></span>
+          <span class="expertise-card__name">{{ item.name }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- 4. About + Experience -->
+  <section class="pf-section container about-experience">
+    <div id="introduction" class="about-col reveal-left">
+      <h2>About Me</h2>
+      <div class="about-col__intro">{{ profile.introduction|linebreaks }}</div>
+      {% if core_expertise %}
+        <ul class="check-list">
+          {% for item in core_expertise|slice:":8" %}
+            <li><svg class="icon icon--small" aria-hidden="true"><use href="#icon-check"></use></svg>{{ item.name }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+    <div id="experience" class="experience-col reveal-right">
+      <div class="experience-col__header">
+        <h2>Experience</h2>
+      </div>
+      {% if experiences %}
+      <div class="timeline">
+        {% for exp in experiences %}
+          {% cycle 'reveal-right' 'reveal-left' as timeline_reveal silent %}
+          <div class="timeline-item {{ timeline_reveal }}">
+            <div class="timeline-item__meta">{{ exp.duration_display }}</div>
+            <div class="timeline-item__title">{{ exp.title }}</div>
+            <div class="timeline-item__company">{{ exp.company }}</div>
+            {% if exp.summary %}<p class="timeline-item__summary">{{ exp.summary }}</p>{% endif %}
+            {% if exp.achievements.all %}
+              <ul class="achievement-list">
+                {% for a in exp.achievements.all %}
+                  <li class="achievement-item">
+                    {% if a.metric_value %}
+                      <span class="achievement-item__metric">{{ a.metric_value }}</span>
+                      <span>{{ a.metric_label }}</span>
+                    {% else %}
+                      <span>{{ a.text }}</span>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <p class="empty-state">Experience history will appear here soon.</p>
+      {% endif %}
     </div>
   </section>
 
-  <!-- 4. Skills -->
+  <!-- 5. Skills -->
   <section id="skills" class="pf-section container">
-    <h2>Skills</h2>
+    <h2 class="reveal-up">Skills</h2>
     <div class="skills-layout">
       <div>
         {% for domain in domains %}
@@ -131,81 +234,31 @@
     </div>
   </section>
 
-  <!-- 5. Certifications -->
-  <section id="certifications" class="pf-section container">
-    <h2>Certifications</h2>
-    {% if certifications %}
-    <div class="cert-grid">
-      {% for cert in certifications %}
-        <div class="cert-card">
-          {% for d in cert.domains.all %}{% if d.code == 'A' %}<span class="cert-card__dot" aria-hidden="true"></span>{% endif %}{% endfor %}
-          <div class="cert-card__name">{{ cert.name }}</div>
-          <div class="cert-card__provider">{{ cert.provider }}</div>
-          <div class="cert-card__footer">
-            {% if cert.status == 'EARNED' %}
-              <span class="pill pill--green">Earned{% if cert.earned_date %} · {{ cert.earned_date|date:"M Y" }}{% endif %}</span>
-            {% elif cert.status == 'STUDYING' %}
-              <span class="pill pill--amber">In progress</span>
-            {% elif cert.status == 'BOOKED' %}
-              <span class="pill pill--teal">Exam booked</span>
-            {% else %}
-              <span class="pill pill--neutral">Planned</span>
-            {% endif %}
-            {% if cert.credential_url %}
-              <a class="cert-card__link" href="{{ cert.credential_url }}" target="_blank" rel="noopener noreferrer">Credential ↗</a>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-    {% else %}
-      <p class="empty-state">Certifications will appear here soon.</p>
-    {% endif %}
-  </section>
-
-  <!-- 6. Experience -->
-  <section id="experience" class="pf-section container">
-    <h2>Experience</h2>
-    {% if experiences %}
-    <div class="timeline">
-      {% for exp in experiences %}
-        <div class="timeline-item">
-          <div class="timeline-item__title">{{ exp.title }}</div>
-          <div class="timeline-item__company">{{ exp.company }}</div>
-          <div class="timeline-item__meta">{{ exp.duration_display }} · {{ exp.location }}</div>
-          {% if exp.summary %}<p class="timeline-item__summary">{{ exp.summary }}</p>{% endif %}
-          {% if exp.achievements.all %}
-            <ul class="achievement-list">
-              {% for a in exp.achievements.all %}
-                <li class="achievement-item">
-                  {% if a.metric_value %}
-                    <span class="achievement-item__metric">{{ a.metric_value }}</span>
-                    <span>{{ a.metric_label }}</span>
-                  {% else %}
-                    <span>{{ a.text }}</span>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-        </div>
-      {% endfor %}
-    </div>
-    {% else %}
-      <p class="empty-state">Experience history will appear here soon.</p>
-    {% endif %}
-  </section>
-
-  <!-- 7. Case studies -->
+  <!-- 6. Case studies -->
   <section id="case-studies" class="pf-section container">
-    <h2>Case studies</h2>
+    <h2 class="reveal-up">Case Studies</h2>
     {% if case_studies %}
     <div class="case-study-grid">
       {% for cs in case_studies %}
-        <a class="case-study-card" href="{% url 'portfolio:case_study_detail' cs.slug %}">
-          {% if cs.is_ai_related %}<span class="ai-tag">AI</span>{% endif %}
-          <div class="case-study-card__title">{{ cs.title }}</div>
-          {% if cs.headline_metric %}<div class="case-study-card__metric">{{ cs.headline_metric }}</div>{% endif %}
+        <a class="case-study-card reveal-up" href="{% url 'portfolio:case_study_detail' cs.slug %}">
+          <div class="case-study-card__media">
+            {% if cs.cover_image %}
+              <img src="{{ cs.cover_image.url }}" alt="" loading="lazy">
+            {% else %}
+              <div class="case-study-card__media-placeholder" aria-hidden="true"></div>
+            {% endif %}
+            {% if cs.is_ai_related %}<span class="ai-tag">AI</span>{% endif %}
+          </div>
+          <div class="case-study-card__body">
+            <div class="case-study-card__title">{{ cs.title }}</div>
+            {% if cs.headline_metric %}<div class="case-study-card__metric">{{ cs.headline_metric }}</div>{% endif %}
+            {% if cs.tech_tag_list %}
+              <div class="case-study-card__tags">
+                {% for tag in cs.tech_tag_list %}<span class="case-study-card__tag">{{ tag }}</span>{% endfor %}
+              </div>
+            {% endif %}
+            <span class="case-study-card__cta">View Case Study &rarr;</span>
+          </div>
         </a>
       {% endfor %}
     </div>
@@ -214,9 +267,70 @@
     {% endif %}
   </section>
 
+  <!-- 7. Certifications + Tools & Technologies -->
+  <section id="certifications" class="pf-section container certs-tools-layout">
+    <div>
+      <h2 class="reveal-up">Certifications</h2>
+      {% if certifications %}
+      <div class="cert-grid">
+        {% for cert in certifications %}
+          <div class="cert-badge-card reveal-scale">
+            <span class="cert-badge{% for d in cert.domains.all %}{% if d.code == 'A' %} cert-badge--ai{% endif %}{% endfor %}">{{ cert.name|cert_badge }}</span>
+            <div class="cert-badge-card__name">{{ cert.name }}</div>
+            {% if cert.earned_date %}
+              <div class="cert-badge-card__year">{{ cert.earned_date|date:"Y" }}</div>
+            {% elif cert.target_date %}
+              <div class="cert-badge-card__year">Target {{ cert.target_date|date:"Y" }}</div>
+            {% endif %}
+            <div class="cert-badge-card__footer">
+              {% if cert.status == 'EARNED' %}
+                <span class="pill pill--green">Earned</span>
+              {% elif cert.status == 'STUDYING' %}
+                <span class="pill pill--amber">In progress</span>
+              {% elif cert.status == 'BOOKED' %}
+                <span class="pill pill--teal">Exam booked</span>
+              {% else %}
+                <span class="pill pill--neutral">Planned</span>
+              {% endif %}
+            </div>
+            {% if cert.credential_url %}
+              <a class="cert-card__link" href="{{ cert.credential_url }}" target="_blank" rel="noopener noreferrer">Credential ↗</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <p class="empty-state">Certifications will appear here soon.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h2 class="reveal-up">Tools &amp; Technologies</h2>
+      {% if tech_tools %}
+      <div class="tools-grid reveal-up">
+        {% for tool in tech_tools %}
+          <div class="tool-badge">
+            <span class="tool-badge__abbr">
+              {% if tool.icon %}
+                <img src="{{ tool.icon.url }}" alt="" loading="lazy">
+              {% elif tool.icon_key and tool.icon_key != 'GENERIC' %}
+                <svg class="icon" aria-hidden="true"><use href="#icon-tool-{{ tool.icon_key|icon_slug }}"></use></svg>
+              {% else %}
+                {{ tool.abbreviation }}
+              {% endif %}
+            </span>
+            <span class="tool-badge__name">{{ tool.name }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <p class="empty-state">Tools will appear here soon.</p>
+      {% endif %}
+    </div>
+  </section>
+
   <!-- 8. Education -->
   <section id="education" class="pf-section container">
-    <h2>Education</h2>
+    <h2 class="reveal-up">Education</h2>
     {% if education %}
     <ul class="education-list">
       {% for edu in education %}
@@ -233,7 +347,7 @@
 
   <!-- 9. Languages -->
   <section id="languages" class="pf-section container">
-    <h2>Languages</h2>
+    <h2 class="reveal-up">Languages</h2>
     {% if languages %}
     <ul class="languages-list">
       {% for lang in languages %}
@@ -248,14 +362,36 @@
     {% endif %}
   </section>
 
+  <!-- CTA banner -->
+  <div class="container">
+    <section class="cta-banner reveal-scale" aria-label="Contact call to action">
+      <div class="cta-banner__inner">
+        <span class="icon-circle icon-circle--white"><svg class="icon" aria-hidden="true"><use href="#icon-chat"></use></svg></span>
+        <div class="cta-banner__text">
+          <h2>Let's Build Intelligent AI Solutions Together</h2>
+          <p>I'm open to discussing AI solutions, partnerships, and opportunities that create real impact.</p>
+        </div>
+        <div class="cta-banner__actions">
+          <a class="button button--accent cta-banner__button" href="#contact">Contact Me</a>
+          {% if profile.cv_file %}
+            <a class="button cta-banner__button--ghost" href="{% url 'portfolio:download_cv' %}?src=cta_banner" download>Download CV</a>
+          {% endif %}
+          {% if profile.linkedin_url %}
+            <a class="button cta-banner__button--ghost" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+
   <!-- 10. Contact -->
   <section id="contact" class="pf-section container">
-    <h2>Contact</h2>
+    <h2 class="reveal-up">Contact</h2>
     <ul class="contact-list">
-      <li><a href="mailto:{{ profile.email }}">{{ profile.email }}</a></li>
-      {% if profile.phone %}<li><a href="tel:{{ profile.phone }}">{{ profile.phone }}</a></li>{% endif %}
-      {% if profile.linkedin_url %}<li><a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>{% endif %}
-      {% if profile.github_url %}<li><a href="{{ profile.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a></li>{% endif %}
+      <li><a href="mailto:{{ profile.email }}"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-mail"></use></svg>{{ profile.email }}</a></li>
+      {% if profile.phone %}<li><a href="tel:{{ profile.phone }}"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-phone"></use></svg>{{ profile.phone }}</a></li>{% endif %}
+      {% if profile.linkedin_url %}<li><a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-external"></use></svg>LinkedIn</a></li>{% endif %}
+      {% if profile.github_url %}<li><a href="{{ profile.github_url }}" target="_blank" rel="noopener noreferrer"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-external"></use></svg>GitHub</a></li>{% endif %}
     </ul>
   </section>
 

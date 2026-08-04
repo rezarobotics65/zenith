@@ -6,6 +6,9 @@
 {% block content %}
 <main id="main-content" class="container cs-detail">
   <a class="cs-detail__back" href="/#case-studies">&larr; Back to case studies</a>
+  {% if case_study.cover_image %}
+    <img class="cs-detail__cover" src="{{ case_study.cover_image.url }}" alt="">
+  {% endif %}
   {% if case_study.is_ai_related %}<span class="ai-tag">AI</span>{% endif %}
   <h1>{{ case_study.title }}</h1>
   {% if case_study.headline_metric %}

@@ -21,10 +21,12 @@ ssh -i /path/to/your-key.pem ec2-user@<EC2_PUBLIC_IP>
 
 ```bash
 sudo dnf update -y
-sudo dnf install -y git python3 python3-pip python3-devel gcc nginx
+sudo dnf install -y git python3.12 python3.12-devel python3.12-pip gcc nginx
 ```
 
-Amazon Linux 2023's `python3` is 3.11 — fine, Django 5.2 supports 3.10–3.13.
+Amazon Linux 2023's default `python3` is 3.9.25 — too old for Django 5.2 (requires
+3.10+). Install `python3.12` explicitly as above (AL2023's repos ship it as a
+separate package); use it by name in the next step rather than the bare `python3`.
 
 **2. Clone the repo**
 
@@ -36,7 +38,7 @@ cd /home/ec2-user/zenith
 **3. Virtual environment + dependencies**
 
 ```bash
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt

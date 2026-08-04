@@ -10,11 +10,27 @@
 {% block extra_head %}{% endblock %}
 </head>
 <body class="public-body">
+{% include "portfolio/_icons.html" %}
 <a class="skip-link" href="#main-content">Skip to content</a>
 {% block content %}{% endblock %}
 <footer class="site-footer">
   <div class="site-footer__inner">
-    <p>&copy; {% now "Y" %} Reza Yousefi.</p>
+    <div class="site-footer__brand">
+      <span class="site-nav__mark">RY</span>
+      <span>{% if profile %}{{ profile.full_name }}{% else %}Reza Yousefi{% endif %} &mdash; AI Solutions Delivery Manager</span>
+    </div>
+    {% if profile %}
+    <div class="site-footer__meta">
+      <a href="mailto:{{ profile.email }}"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-mail"></use></svg>{{ profile.email }}</a>
+      {% if profile.phone %}<a href="tel:{{ profile.phone }}"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-phone"></use></svg>{{ profile.phone }}</a>{% endif %}
+      <span><svg class="icon icon--small" aria-hidden="true"><use href="#icon-pin"></use></svg>{{ profile.location }}</span>
+      {% if profile.linkedin_url %}<a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-external"></use></svg>LinkedIn</a>{% endif %}
+      {% if profile.github_url %}<a href="{{ profile.github_url }}" target="_blank" rel="noopener noreferrer"><svg class="icon icon--small" aria-hidden="true"><use href="#icon-external"></use></svg>GitHub</a>{% endif %}
+    </div>
+    {% endif %}
+    <div class="site-footer__meta">
+      <span>&copy; {% now "Y" %} {% if profile %}{{ profile.full_name }}{% else %}Reza Yousefi{% endif %}. All rights reserved.</span>
+    </div>
   </div>
 </footer>
 <script src="{% static 'js/charts.js' %}" defer></script>

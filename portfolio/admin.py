@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Achievement, CaseStudy, Education, Experience, Language, Profile
+from .models import Achievement, CaseStudy, CoreExpertise, Education, Experience, Language, Profile, TechTool
 
 
 class AchievementInline(admin.TabularInline):
@@ -53,3 +53,17 @@ class CaseStudyAdmin(admin.ModelAdmin):
     prepopulated_fields = {'slug': ('title',)}
     ordering = ('order',)
     autocomplete_fields = ['related_experience']
+
+
+@admin.register(CoreExpertise)
+class CoreExpertiseAdmin(admin.ModelAdmin):
+    list_display = ('name', 'icon', 'order')
+    list_editable = ('icon', 'order')
+    ordering = ('order',)
+
+
+@admin.register(TechTool)
+class TechToolAdmin(admin.ModelAdmin):
+    list_display = ('name', 'icon_key', 'abbreviation', 'order')
+    list_editable = ('icon_key', 'abbreviation', 'order')
+    ordering = ('order',)
