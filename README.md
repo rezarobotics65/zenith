@@ -66,6 +66,10 @@ tests are non-negotiable — see Section 11 of `BUILD_BRIEF.md`.
 - Set `DJANGO_SETTINGS_MODULE=config.settings.production` and provide
   `SECRET_KEY`, `ALLOWED_HOSTS`, and `DB_*` via environment variables — see
   `.env.example`.
+- For a step-by-step EC2 + RDS deployment with GitHub Actions CI/CD, see
+  [DEPLOYMENT.md](DEPLOYMENT.md). Server-side config lives in `deploy/`
+  (systemd unit, nginx config, deploy script); the workflow itself is
+  `.github/workflows/deploy.yml`.
 
 ## Decisions made while building (Section 14 of BUILD_BRIEF.md)
 

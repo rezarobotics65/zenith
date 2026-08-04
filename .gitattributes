@@ -1,0 +1,5 @@
+# Force LF line endings for anything that runs on the Linux server,
+# regardless of a contributor's core.autocrlf setting.
+deploy/* text eol=lf
+.github/**/*.yml text eol=lf
+*.sh text eol=lf
