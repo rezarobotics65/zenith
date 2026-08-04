@@ -1,0 +1,23 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Reza Yousefi — AI Solutions Delivery Manager{% endblock %}</title>
+<meta name="description" content="{% block meta_description %}Reza Yousefi — AI delivery leader specialising in enterprise AI solutions, from architecture to live deployment.{% endblock %}">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<link rel="stylesheet" href="{% static 'css/portfolio.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body class="public-body">
+<a class="skip-link" href="#main-content">Skip to content</a>
+{% block content %}{% endblock %}
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <p>&copy; {% now "Y" %} Reza Yousefi.</p>
+  </div>
+</footer>
+<script src="{% static 'js/charts.js' %}" defer></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

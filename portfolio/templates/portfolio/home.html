@@ -1,0 +1,268 @@
+{% extends "base_public.html" %}
+{% load static %}
+
+{% block content %}
+<nav class="site-nav" aria-label="Section navigation">
+  <div class="site-nav__inner">
+    <a class="site-nav__brand" href="#main-content">{% if profile %}{{ profile.full_name }}{% else %}Portfolio{% endif %}</a>
+    <div class="site-nav__links">
+      <a href="#introduction">About</a>
+      <a href="#skills">Skills</a>
+      <a href="#certifications">Certifications</a>
+      <a href="#experience">Experience</a>
+      <a href="#case-studies">Case studies</a>
+      <a href="#education">Education</a>
+      <a href="#languages">Languages</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <a class="site-nav__staff-link" href="/accounts/login/">Zenith Tracker</a>
+  </div>
+</nav>
+
+<main id="main-content">
+
+{% if not profile %}
+  <div class="container" style="padding: var(--space-6) 0;">
+    <p class="empty-state">This portfolio is being prepared. Please check back soon.</p>
+  </div>
+{% else %}
+
+  <!-- 1. Hero -->
+  <section class="hero container" aria-label="Introduction">
+    <div class="hero__inner">
+      {% if profile.photo %}
+        <img class="hero__photo" src="{{ profile.photo.url }}" alt="Photo of {{ profile.full_name }}">
+      {% else %}
+        <div class="hero__photo-placeholder" role="img" aria-label="{{ profile.full_name }}"></div>
+      {% endif %}
+      <div class="hero__content">
+        <h1 class="hero__name">{{ profile.full_name }}</h1>
+        <p class="hero__headline">{{ profile.headline }}</p>
+        <p class="hero__tagline">{{ profile.tagline }}</p>
+        <div class="hero__meta">
+          <span>{{ profile.location }}</span>
+          <span>·</span>
+          <span>{{ profile.years_experience }}+ years experience</span>
+          {% if profile.open_to_work %}
+            <span class="hero__badge">Open to opportunities</span>
+          {% endif %}
+        </div>
+        <div class="hero__ctas">
+          {% if profile.cv_file %}
+            <a class="button button--accent" href="{{ profile.cv_file.url }}" download>Download CV</a>
+          {% endif %}
+          {% if profile.linkedin_url %}
+            <a class="button" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">Connect on LinkedIn</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. AI Inside band -->
+  {% if headline_achievements %}
+  <section class="ai-band" aria-label="AI specialisation highlights">
+    <div class="ai-band__inner">
+      <span class="ai-band__label">AI INSIDE</span>
+      <div class="ai-band__metrics">
+        {% for achievement in headline_achievements %}
+          <span class="ai-band__metric">
+            <span class="ai-band__metric-value">{{ achievement.metric_value }}</span>
+            <span class="ai-band__metric-label">{{ achievement.metric_label }}</span>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- 3. Introduction -->
+  <section id="introduction" class="pf-section container">
+    <h2>Introduction</h2>
+    <div class="pf-section__intro" style="max-width: 78ch;">
+      {{ profile.introduction|linebreaks }}
+    </div>
+  </section>
+
+  <!-- 4. Skills -->
+  <section id="skills" class="pf-section container">
+    <h2>Skills</h2>
+    <div class="skills-layout">
+      <div>
+        {% for domain in domains %}
+          <div class="domain-group {% if domain.code == 'A' %}domain-group--ai{% endif %}">
+            <div class="domain-group__header">
+              <span class="domain-group__name">{{ domain.name }}</span>
+              <span class="domain-group__priority">{{ domain.get_priority_display }} priority</span>
+            </div>
+            {% for skill in domain.skills.all %}
+              <div class="skill-bar">
+                <div class="skill-bar__row">
+                  <span class="skill-bar__name">{{ skill.name }}</span>
+                  <span class="skill-bar__value">{{ skill.current_level }}/5</span>
+                </div>
+                <div class="skill-bar__track">
+                  <div class="skill-bar__fill" style="width: {% widthratio skill.current_level 5 100 %}%"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+      <div class="radar-wrap">
+        <div class="card">
+          <div class="chart-container">
+            <canvas id="skill-radar-chart" height="280" role="img" aria-label="Radar chart comparing current and target skill levels across six domains"></canvas>
+          </div>
+          {{ radar_data|json_script:"skill-chart-data" }}
+          <details class="chart-fallback" id="skill-chart-fallback" open>
+            <summary>View as table</summary>
+            <table class="data-table">
+              <thead><tr><th>Domain</th><th>Current</th><th>Target</th></tr></thead>
+              <tbody>
+                {% for domain in domains %}
+                <tr><td>{{ domain.name }}</td><td>{{ domain.avg_current_level|floatformat:1 }}</td><td>{{ domain.avg_target_level|floatformat:1 }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Certifications -->
+  <section id="certifications" class="pf-section container">
+    <h2>Certifications</h2>
+    {% if certifications %}
+    <div class="cert-grid">
+      {% for cert in certifications %}
+        <div class="cert-card">
+          {% for d in cert.domains.all %}{% if d.code == 'A' %}<span class="cert-card__dot" aria-hidden="true"></span>{% endif %}{% endfor %}
+          <div class="cert-card__name">{{ cert.name }}</div>
+          <div class="cert-card__provider">{{ cert.provider }}</div>
+          <div class="cert-card__footer">
+            {% if cert.status == 'EARNED' %}
+              <span class="pill pill--green">Earned{% if cert.earned_date %} · {{ cert.earned_date|date:"M Y" }}{% endif %}</span>
+            {% elif cert.status == 'STUDYING' %}
+              <span class="pill pill--amber">In progress</span>
+            {% elif cert.status == 'BOOKED' %}
+              <span class="pill pill--teal">Exam booked</span>
+            {% else %}
+              <span class="pill pill--neutral">Planned</span>
+            {% endif %}
+            {% if cert.credential_url %}
+              <a class="cert-card__link" href="{{ cert.credential_url }}" target="_blank" rel="noopener noreferrer">Credential ↗</a>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p class="empty-state">Certifications will appear here soon.</p>
+    {% endif %}
+  </section>
+
+  <!-- 6. Experience -->
+  <section id="experience" class="pf-section container">
+    <h2>Experience</h2>
+    {% if experiences %}
+    <div class="timeline">
+      {% for exp in experiences %}
+        <div class="timeline-item">
+          <div class="timeline-item__title">{{ exp.title }}</div>
+          <div class="timeline-item__company">{{ exp.company }}</div>
+          <div class="timeline-item__meta">{{ exp.duration_display }} · {{ exp.location }}</div>
+          {% if exp.summary %}<p class="timeline-item__summary">{{ exp.summary }}</p>{% endif %}
+          {% if exp.achievements.all %}
+            <ul class="achievement-list">
+              {% for a in exp.achievements.all %}
+                <li class="achievement-item">
+                  {% if a.metric_value %}
+                    <span class="achievement-item__metric">{{ a.metric_value }}</span>
+                    <span>{{ a.metric_label }}</span>
+                  {% else %}
+                    <span>{{ a.text }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p class="empty-state">Experience history will appear here soon.</p>
+    {% endif %}
+  </section>
+
+  <!-- 7. Case studies -->
+  <section id="case-studies" class="pf-section container">
+    <h2>Case studies</h2>
+    {% if case_studies %}
+    <div class="case-study-grid">
+      {% for cs in case_studies %}
+        <a class="case-study-card" href="{% url 'portfolio:case_study_detail' cs.slug %}">
+          {% if cs.is_ai_related %}<span class="ai-tag">AI</span>{% endif %}
+          <div class="case-study-card__title">{{ cs.title }}</div>
+          {% if cs.headline_metric %}<div class="case-study-card__metric">{{ cs.headline_metric }}</div>{% endif %}
+        </a>
+      {% endfor %}
+    </div>
+    {% else %}
+      <p class="empty-state">Case studies will appear here soon.</p>
+    {% endif %}
+  </section>
+
+  <!-- 8. Education -->
+  <section id="education" class="pf-section container">
+    <h2>Education</h2>
+    {% if education %}
+    <ul class="education-list">
+      {% for edu in education %}
+        <li class="education-item">
+          <span class="education-item__qualification">{{ edu.qualification }}{% if edu.field_of_study %}, {{ edu.field_of_study }}{% endif %}</span>
+          <span class="education-item__meta">{{ edu.institution }} · {{ edu.year_completed }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p class="empty-state">Education history will appear here soon.</p>
+    {% endif %}
+  </section>
+
+  <!-- 9. Languages -->
+  <section id="languages" class="pf-section container">
+    <h2>Languages</h2>
+    {% if languages %}
+    <ul class="languages-list">
+      {% for lang in languages %}
+        <li class="language-item">
+          <span class="language-item__name">{{ lang.name }}</span>
+          <span class="language-item__level">{{ lang.get_proficiency_display }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      <p class="empty-state">Language proficiencies will appear here soon.</p>
+    {% endif %}
+  </section>
+
+  <!-- 10. Contact -->
+  <section id="contact" class="pf-section container">
+    <h2>Contact</h2>
+    <ul class="contact-list">
+      <li><a href="mailto:{{ profile.email }}">{{ profile.email }}</a></li>
+      {% if profile.phone %}<li><a href="tel:{{ profile.phone }}">{{ profile.phone }}</a></li>{% endif %}
+      {% if profile.linkedin_url %}<li><a href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>{% endif %}
+      {% if profile.github_url %}<li><a href="{{ profile.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a></li>{% endif %}
+    </ul>
+  </section>
+
+{% endif %}
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+{% endblock %}

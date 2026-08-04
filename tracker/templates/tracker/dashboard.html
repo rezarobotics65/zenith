@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p class="page-header__meta">Am I on track for {{ objective.target_title }}?</p>
+</div>
+
+<!-- Objective header -->
+<section class="card section">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-3);">
+    <div>
+      <p style="color:var(--color-text-secondary); margin-bottom:4px;">{{ objective.current_title }} &rarr; <strong style="color:var(--color-navy);">{{ objective.target_title }}</strong></p>
+      <p style="color:var(--color-text-secondary); font-size:0.9rem;">Target date {{ objective.target_date|date:"d M Y" }} &middot; {{ objective.days_remaining }} days remaining</p>
+      <a class="row-actions" href="{% url 'tracker:edit_object' 'objective' objective.pk %}?next={{ request.get_full_path|urlencode }}">Edit objective</a>
+    </div>
+    <div style="text-align:right;">
+      <div class="metric-card__label">Overall progress</div>
+      <div class="metric-card__value">{{ overall_progress }}%</div>
+    </div>
+  </div>
+  <div class="progress-bar" style="margin-top:var(--space-2);">
+    <div class="progress-bar__fill" style="width: {{ overall_progress }}%"></div>
+  </div>
+</section>
+
+<!-- Metric row -->
+<div class="metric-row">
+  <div class="metric-card">
+    <div class="metric-card__label">Certifications</div>
+    <div class="metric-card__value">{{ certification_summary.earned }}/{{ certification_summary.total }}</div>
+    <div class="metric-card__sub">earned</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">Hours logged</div>
+    <div class="metric-card__value">{{ hours_summary.logged|floatformat:0 }}/{{ hours_summary.planned }}</div>
+    <div class="metric-card__sub">of planned hours</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">KPIs complete</div>
+    <div class="metric-card__value">{{ kpi_summary.complete }}/{{ kpi_summary.total }}</div>
+    <div class="metric-card__sub">across all pillars</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">This month</div>
+    <div class="metric-card__value">
+      {% if current_month_rag == 'GREEN' %}<span class="pill pill--green">On track</span>
+      {% elif current_month_rag == 'AMBER' %}<span class="pill pill--amber">At risk</span>
+      {% else %}<span class="pill pill--red">Behind</span>{% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Certification tracker -->
+<section class="section">
+  <h2>Certification tracker <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'certification' %}?next={{ request.get_full_path|urlencode }}">+ Add certification</a></h2>
+  {% if certifications %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Certification</th><th>Status</th><th>Progress</th><th>Target date</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for cert in certifications %}
+          <tr>
+            <td>{{ cert.name }}</td>
+            <td>
+              {% if cert.status == 'EARNED' %}<span class="pill pill--green">Earned</span>
+              {% elif cert.status == 'STUDYING' %}<span class="pill pill--amber">Studying</span>
+              {% elif cert.status == 'BOOKED' %}<span class="pill pill--teal">Booked</span>
+              {% elif cert.status == 'DEFERRED' or cert.status == 'ABANDONED' %}<span class="pill pill--neutral">{{ cert.get_status_display }}</span>
+              {% else %}<span class="pill pill--neutral">Planned</span>{% endif %}
+            </td>
+            <td>
+              <div class="progress-row">
+                <div class="progress-bar"><div class="progress-bar__fill" style="width:{{ cert.progress_pct }}%"></div></div>
+                <span class="progress-row__value">{{ cert.progress_pct }}%</span>
+              </div>
+            </td>
+            <td>{{ cert.target_date|date:"d M Y"|default:"—" }}</td>
+            <td class="row-actions">
+              <a href="{% url 'tracker:edit_object' 'certification' cert.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+              <a class="is-danger" href="{% url 'tracker:delete_object' 'certification' cert.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty-state">No certifications yet.</p>
+  {% endif %}
+</section>
+
+<!-- Skill domain radar -->
+<section class="section">
+  <h2>Skill domains <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'skill-domain' %}?next={{ request.get_full_path|urlencode }}">+ Add domain</a></h2>
+  <div class="card">
+    <div class="chart-container">
+      <canvas id="skill-radar-chart" height="300" role="img" aria-label="Radar chart comparing current and target skill levels across domains"></canvas>
+    </div>
+    {{ skill_radar_data|json_script:"skill-chart-data" }}
+    <details class="chart-fallback" id="skill-chart-fallback" open>
+      <summary>View as table</summary>
+      <table class="data-table">
+        <thead><tr><th>Domain</th><th>Current</th><th>Target</th></tr></thead>
+        <tbody>
+        {% for row in skill_radar_data.rows %}
+          <tr><td>{{ row.label }}</td><td>{{ row.current }}</td><td>{{ row.target }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </div>
+
+  {% for domain in domains %}
+    <div class="card" style="margin-top:var(--space-2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:var(--space-2); flex-wrap:wrap;">
+        <strong>{{ domain.code }} — {{ domain.name }}</strong>
+        <span class="row-actions">
+          <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'skill' %}?next={{ request.get_full_path|urlencode }}">+ Add skill</a>
+          <a href="{% url 'tracker:edit_object' 'skill-domain' domain.pk %}?next={{ request.get_full_path|urlencode }}">Edit domain</a>
+          <a class="is-danger" href="{% url 'tracker:delete_object' 'skill-domain' domain.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+        </span>
+      </div>
+      {% if domain.skills.all %}
+        <div class="table-wrap" style="margin-top:var(--space-2);">
+          <table class="data-table">
+            <thead><tr><th>Skill</th><th>Current</th><th>Target</th><th>Gap</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for skill in domain.skills.all %}
+              <tr>
+                <td>{{ skill.name }}</td>
+                <td>{{ skill.current_level }}/5</td>
+                <td>{{ skill.target_level }}/5</td>
+                <td>{{ skill.gap|capfirst }}</td>
+                <td class="row-actions">
+                  <a href="{% url 'tracker:edit_object' 'skill' skill.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+                  <a class="is-danger" href="{% url 'tracker:delete_object' 'skill' skill.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+</section>
+
+<!-- Pillar health -->
+<section class="section">
+  <h2>Pillar health <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'pillar' %}?next={{ request.get_full_path|urlencode }}">+ Add pillar</a></h2>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Pillar</th><th>Weight</th><th>KPIs</th><th>RAG</th><th>Progress</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for row in pillar_health %}
+        <tr>
+          <td>{{ row.pillar.name }}</td>
+          <td>{{ row.pillar.weight }}%</td>
+          <td>{{ row.kpi_count }}</td>
+          <td>
+            {% if row.rag == 'GREEN' %}<span class="pill pill--green">Green</span>
+            {% elif row.rag == 'AMBER' %}<span class="pill pill--amber">Amber</span>
+            {% else %}<span class="pill pill--red">Red</span>{% endif %}
+          </td>
+          <td>
+            <div class="progress-row">
+              <div class="progress-bar"><div class="progress-bar__fill" style="width:{{ row.progress_pct }}%"></div></div>
+              <span class="progress-row__value">{{ row.progress_pct }}%</span>
+            </div>
+          </td>
+          <td class="row-actions">
+            <a href="{% url 'tracker:edit_object' 'pillar' row.pillar.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Monthly hours -->
+<section class="section">
+  <h2>Monthly hours</h2>
+  <div class="card">
+    <div class="chart-container">
+      <canvas id="monthly-hours-chart" height="160" role="img" aria-label="Bar chart of actual vs target hours per month"></canvas>
+    </div>
+    {{ monthly_hours_data|json_script:"monthly-hours-chart-data" }}
+    <details class="chart-fallback" id="monthly-hours-fallback" open>
+      <summary>View as table</summary>
+      <table class="data-table">
+        <thead><tr><th>Month</th><th>Actual</th><th>Target</th></tr></thead>
+        <tbody>
+        {% for row in monthly_hours_data.rows %}
+          <tr><td>{{ row.label }}</td><td>{{ row.actual }}</td><td>{{ row.target }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </div>
+</section>
+
+<!-- Next up / Recent activity -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4);" class="dashboard-grid">
+  <section class="section">
+    <h2>Next up</h2>
+    {% if next_commitments %}
+      <ul class="commitment-list">
+        {% for c in next_commitments %}
+          <li class="commitment-item">
+            <form method="post" action="{% url 'tracker:toggle_commitment' c.pk %}?next={{ request.get_full_path|urlencode }}" style="display:contents;">
+              {% csrf_token %}
+              <button type="submit" class="commitment-item__check" style="background:none; border:none; cursor:pointer; padding:0; font:inherit;" aria-label="Mark complete">☐</button>
+            </form>
+            <span class="commitment-item__text">{{ c.commitment }} <span style="color:var(--color-text-secondary); font-size:0.85rem;">({{ c.plan.theme }}, {{ c.pillar.code }})</span></span>
+            <a href="{% url 'tracker:edit_object' 'commitment' c.pk %}?next={{ request.get_full_path|urlencode }}" style="font-size:0.8rem;">Edit</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-state">Nothing outstanding — all commitments complete.</p>
+    {% endif %}
+  </section>
+
+  <section class="section">
+    <h2>Recent activity <a class="admin-link" href="{% url 'tracker:activity_log' %}">View all →</a></h2>
+    {% if recent_activity %}
+      <ul class="commitment-list">
+        {% for log in recent_activity %}
+          <li class="commitment-item">
+            <span class="commitment-item__text">{{ log.date|date:"d M" }} — {{ log.title }} <span style="color:var(--color-text-secondary); font-size:0.85rem;">({{ log.hours }}h)</span></span>
+            <a href="{% url 'tracker:edit_object' 'activity' log.pk %}?next={{ request.get_full_path|urlencode }}" style="font-size:0.8rem;">Edit</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="empty-state">No activity logged yet. <a href="{% url 'tracker:add_object' 'activity' %}?next={{ request.get_full_path|urlencode }}">Log the first entry →</a></p>
+    {% endif %}
+  </section>
+</div>
+
+<style>
+@media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr !important; } }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+{% endblock %}

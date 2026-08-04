@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Log — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Activity Log</h1>
+  <a class="button button--accent" href="{% url 'tracker:add_object' 'activity' %}?next={{ request.get_full_path|urlencode }}">+ Log new entry</a>
+</div>
+
+<div class="metric-row">
+  <div class="metric-card">
+    <div class="metric-card__label">This week</div>
+    <div class="metric-card__value">{{ summary.week_hours|floatformat:1 }}h</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">This month</div>
+    <div class="metric-card__value">{{ summary.month_hours|floatformat:1 }}h</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">This year</div>
+    <div class="metric-card__value">{{ summary.year_hours|floatformat:1 }}h</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-card__label">Current streak</div>
+    <div class="metric-card__value">{{ summary.streak_days }} day{{ summary.streak_days|pluralize }}</div>
+  </div>
+</div>
+
+<section class="section">
+  <h2>Weekly hours — last 12 weeks</h2>
+  <div class="card">
+    <div class="chart-container">
+      <canvas id="weekly-hours-chart" height="220" role="img" aria-label="Line chart of hours logged per week over the last 12 weeks"></canvas>
+    </div>
+    {{ weekly_chart_data|json_script:"weekly-hours-chart-data" }}
+    <details class="chart-fallback" id="weekly-hours-fallback" open>
+      <summary>View as table</summary>
+      <table class="data-table">
+        <thead><tr><th>Week of</th><th>Hours</th></tr></thead>
+        <tbody>
+        {% for row in weekly_chart_data.rows %}
+          <tr><td>{{ row.label }}</td><td>{{ row.hours }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  </div>
+</section>
+
+<section class="section">
+  <div class="calendar-header">
+    <h2>Calendar</h2>
+    <div class="calendar-view-toggle" role="tablist" aria-label="Calendar view">
+      <a role="tab" aria-selected="{% if cal_view == 'year' %}true{% else %}false{% endif %}"
+         class="{% if cal_view == 'year' %}is-active{% endif %}"
+         href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=year&cal_year={{ cal_year }}">Year</a>
+      <a role="tab" aria-selected="{% if cal_view == 'month' %}true{% else %}false{% endif %}"
+         class="{% if cal_view == 'month' %}is-active{% endif %}"
+         href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=month&cal_year={{ cal_year }}&cal_month={{ cal_month }}">Month</a>
+      <a role="tab" aria-selected="{% if cal_view == 'day' %}true{% else %}false{% endif %}"
+         class="{% if cal_view == 'day' %}is-active{% endif %}"
+         href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=day&cal_date={{ cal_date|date:"Y-m-d" }}">Day</a>
+    </div>
+  </div>
+
+  {% if cal_view == 'month' %}
+    <div class="calendar-nav">
+      <a class="button button--small" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=month&cal_year={{ cal_prev.year }}&cal_month={{ cal_prev.month }}">&larr; Prev</a>
+      <strong>{{ cal_month_label }}</strong>
+      <a class="button button--small" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=month&cal_year={{ cal_next.year }}&cal_month={{ cal_next.month }}">Next &rarr;</a>
+    </div>
+    <div class="table-wrap">
+      <table class="calendar-month">
+        <thead>
+          <tr>{% for label in cal_weekday_labels %}<th>{{ label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for week in cal_weeks %}
+            <tr>
+              {% for cell in week %}
+                <td class="calendar-day {% if not cell.in_month %}is-outside{% endif %} {% if cell.is_today %}is-today{% endif %}">
+                  <a class="calendar-day__link" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=day&cal_date={{ cell.date|date:"Y-m-d" }}"
+                     aria-label="{{ cell.date|date:'j F Y' }}{% if cell.is_today %}, today{% endif %}{% if cell.logs %}, {{ cell.logs|length|add:cell.extra_count }} activit{{ cell.logs|length|add:cell.extra_count|pluralize:'y,ies' }} logged, {{ cell.total_hours }} hours{% endif %}"
+                     {% if cell.is_today %}aria-current="date"{% endif %}>
+                    <span class="calendar-day__number">{{ cell.date.day }}{% if cell.is_today %} <span class="calendar-day__today-tag">Today</span>{% endif %}</span>
+                    {% if cell.logs %}
+                      <ul class="calendar-day__entries">
+                        {% for log in cell.logs %}<li>{{ log.title|truncatechars:22 }}</li>{% endfor %}
+                        {% if cell.extra_count %}<li class="calendar-day__more">+{{ cell.extra_count }} more</li>{% endif %}
+                      </ul>
+                      <span class="calendar-day__hours">{{ cell.total_hours }}h</span>
+                    {% endif %}
+                  </a>
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% elif cal_view == 'year' %}
+    <div class="calendar-nav">
+      <a class="button button--small" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=year&cal_year={{ cal_prev_year }}">&larr; Prev</a>
+      <strong>{{ cal_year }}</strong>
+      <a class="button button--small" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=year&cal_year={{ cal_next_year }}">Next &rarr;</a>
+    </div>
+    <div class="calendar-year-grid">
+      {% for m in cal_months %}
+        <div class="calendar-year-month">
+          <a class="calendar-year-month__title" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=month&cal_year={{ cal_year }}&cal_month={{ m.number }}">{{ m.name }}</a>
+          <table class="calendar-mini">
+            <thead><tr>{% for label in cal_weekday_labels %}<th>{{ label|slice:":1" }}</th>{% endfor %}</tr></thead>
+            <tbody>
+              {% for week in m.weeks %}
+                <tr>
+                  {% for cell in week %}
+                    <td class="{% if not cell.in_month %}is-outside{% endif %} {% if cell.is_today %}is-today{% endif %} {% if cell.has_activity %}has-activity{% endif %}">
+                      {% if cell.in_month %}
+                        <a href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=day&cal_date={{ cell.date|date:"Y-m-d" }}"
+                           aria-label="{{ cell.date|date:'j F Y' }}{% if cell.has_activity %}, activity logged{% endif %}">{{ cell.date.day }}</a>
+                      {% endif %}
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+    </div>
+
+  {% elif cal_view == 'day' %}
+    <div class="calendar-nav">
+      <a class="button button--small" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=day&cal_date={{ cal_prev_day|date:"Y-m-d" }}">&larr; Prev</a>
+      <strong>{{ cal_date|date:"l, j F Y" }}{% if cal_date == cal_today %} <span class="pill pill--teal">Today</span>{% endif %}</strong>
+      <a class="button button--small" href="?{% if cal_base_qs %}{{ cal_base_qs }}&{% endif %}cal_view=day&cal_date={{ cal_next_day|date:"Y-m-d" }}">Next &rarr;</a>
+    </div>
+    <div class="card">
+      {% if cal_day_logs %}
+        <p class="page-header__meta">{{ cal_day_total_hours }}h logged</p>
+        <ul class="commitment-list">
+          {% for log in cal_day_logs %}
+            <li class="commitment-item">
+              <span class="commitment-item__text">
+                <strong>{{ log.get_activity_type_display }}</strong> — {{ log.title }}
+                {% if log.is_milestone %}<span class="pill pill--teal">Milestone</span>{% endif %}
+                <span style="color:var(--color-text-secondary); font-size:0.85rem;">({{ log.hours }}h{% if log.course %} · {{ log.course.name }}{% endif %}{% if log.certification %} · {{ log.certification.name }}{% endif %})</span>
+                {% if log.description %}<div class="page-header__meta">{{ log.description }}</div>{% endif %}
+              </span>
+              <span class="row-actions">
+                <a href="{% url 'tracker:edit_object' 'activity' log.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+                <a class="is-danger" href="{% url 'tracker:delete_object' 'activity' log.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-state">Nothing logged on {{ cal_date|date:"j F Y" }}. <a href="{% url 'tracker:add_object' 'activity' %}?next={{ request.get_full_path|urlencode }}">Log an entry →</a></p>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>
+
+<section class="section">
+  <h2>Entries</h2>
+  <form class="filter-form" method="get">
+    <div class="form-row">
+      <label for="f-from">From</label>
+      <input type="date" id="f-from" name="date_from" value="{{ filter_date_from }}">
+    </div>
+    <div class="form-row">
+      <label for="f-to">To</label>
+      <input type="date" id="f-to" name="date_to" value="{{ filter_date_to }}">
+    </div>
+    <div class="form-row">
+      <label for="f-type">Type</label>
+      <select id="f-type" name="activity_type">
+        <option value="">All</option>
+        {% for value, label in activity_types %}<option value="{{ value }}" {% if filter_activity_type == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="f-course">Course</label>
+      <select id="f-course" name="course">
+        <option value="">All</option>
+        {% for c in courses %}<option value="{{ c.id }}" {% if filter_course == c.id|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="f-cert">Certification</label>
+      <select id="f-cert" name="certification">
+        <option value="">All</option>
+        {% for cert in certifications %}<option value="{{ cert.id }}" {% if filter_certification == cert.id|stringformat:"s" %}selected{% endif %}>{{ cert.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="button">Apply filters</button>
+  </form>
+
+  {% if page_obj.object_list %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Hours</th><th>Related</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% for log in page_obj.object_list %}
+          <tr>
+            <td>{{ log.date|date:"d M Y" }}</td>
+            <td>{{ log.get_activity_type_display }}</td>
+            <td>{{ log.title }}{% if log.is_milestone %} <span class="pill pill--teal">Milestone</span>{% endif %}</td>
+            <td>{{ log.hours }}</td>
+            <td style="color:var(--color-text-secondary); font-size:0.85rem;">
+              {{ log.course.name|default:"" }}{{ log.certification.name|default:"" }}{{ log.kpi.code|default:"" }}
+            </td>
+            <td class="row-actions">
+              <a href="{% url 'tracker:edit_object' 'activity' log.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+              <a class="is-danger" href="{% url 'tracker:delete_object' 'activity' log.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination" aria-label="Pagination" style="margin-top:var(--space-2); display:flex; gap:var(--space-2);">
+        {% if page_obj.has_previous %}
+          <a class="button" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&amp;{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">&larr; Previous</a>
+        {% endif %}
+        <span class="page-header__meta" style="align-self:center;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="button" href="?{% for k,v in request.GET.items %}{% if k != 'page' %}{{ k }}={{ v }}&amp;{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">Next &rarr;</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="empty-state">No activity logged yet. <a href="{% url 'tracker:add_object' 'activity' %}?next={{ request.get_full_path|urlencode }}">Log the first entry →</a></p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+{% endblock %}

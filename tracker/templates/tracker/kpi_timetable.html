@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}KPI &amp; Timetable — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>KPI &amp; Timetable</h1>
+</div>
+
+<form class="filter-form" method="get">
+  <div class="form-row">
+    <label for="f-year">Year</label>
+    <select id="f-year" name="year">
+      <option value="">All</option>
+      {% for y in years %}<option value="{{ y }}" {% if filter_year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="f-status">Status</label>
+    <select id="f-status" name="status">
+      <option value="">All</option>
+      {% for value, label in status_choices %}<option value="{{ value }}" {% if filter_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="f-tier">Course tier</label>
+    <select id="f-tier" name="tier">
+      <option value="">All</option>
+      {% for value, label in tier_choices %}<option value="{{ value }}" {% if filter_tier == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="form-row">
+    <label for="f-month">Month</label>
+    <select id="f-month" name="month">
+      <option value="">All</option>
+      {% for value, label in month_choices %}<option value="{{ value }}" {% if filter_month == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="button">Apply filters</button>
+</form>
+
+<!-- Timetable -->
+<section class="section">
+  <h2>Timetable</h2>
+  {% if timetable_rows %}
+    <div class="timetable-wrap">
+      <table class="timetable">
+        <thead>
+          <tr>
+            <th>Item</th>
+            {% for month in timetable_months %}<th>{{ month|date:"M Y" }}</th>{% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in timetable_rows %}
+          <tr>
+            <td class="row-label">{{ row.label }}</td>
+            {% for cell in row.cells %}
+              <td class="cell {% if cell.active %}active{% endif %} {% if cell.is_target %}target{% endif %}"
+                  aria-label="{% if cell.is_target %}Target month{% elif cell.active %}Active{% else %}Inactive{% endif %}"></td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="page-header__meta" style="font-size:0.8rem; margin-top:var(--space-1);">★ marks a target or exam month.</p>
+  {% else %}
+    <p class="empty-state">No courses or certifications with dates yet.</p>
+  {% endif %}
+</section>
+
+<!-- Course list -->
+<section class="section">
+  <h2>Courses <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'course' %}?next={{ request.get_full_path|urlencode }}">+ Add course</a></h2>
+  {% if courses_by_tier %}
+    {% for tier_label, courses in courses_by_tier.items %}
+      <h3 style="color:var(--color-text-secondary); font-size:1rem; margin-top:var(--space-3);">{{ tier_label }}</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Course</th><th>Provider</th><th>Status</th><th>Hours</th><th>Progress</th>{% if tier_label == 'Leadership' %}<th>Application</th>{% endif %}<th>Actions</th></tr></thead>
+          <tbody>
+          {% for course in courses %}
+            <tr>
+              <td>{{ course.name }}</td>
+              <td>{{ course.provider }}</td>
+              <td>
+                <form id="course-form-{{ course.pk }}" method="post" action="{% url 'tracker:quick_update_course' course.pk %}?next={{ request.get_full_path|urlencode }}">{% csrf_token %}</form>
+                <div class="inline-edit">
+                  <select name="status" form="course-form-{{ course.pk }}" class="inline-select" aria-label="Status for {{ course.name }}">
+                    {% for value, label in course_status_choices %}
+                      <option value="{{ value }}" {% if course.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" form="course-form-{{ course.pk }}" class="button button--small inline-save-btn">Save</button>
+                </div>
+              </td>
+              <td>
+                <span class="hours-display">{{ course.hours_logged|floatformat:0 }}/{{ course.planned_hours }}</span>
+                <form id="course-hours-form-{{ course.pk }}" method="post" action="{% url 'tracker:quick_set_course_hours' course.pk %}?next={{ request.get_full_path|urlencode }}">{% csrf_token %}</form>
+                <div class="inline-edit">
+                  <input type="number" name="hours" form="course-hours-form-{{ course.pk }}" step="0.25" min="0"
+                         value="{{ course.hours_logged|floatformat:2 }}" class="inline-number inline-number--small"
+                         aria-label="Set total hours logged for {{ course.name }}">
+                  <button type="submit" form="course-hours-form-{{ course.pk }}" class="button button--small inline-save-btn">Save</button>
+                </div>
+              </td>
+              <td>
+                <div class="progress-row">
+                  <div class="progress-bar"><div class="progress-bar__fill" style="width:{{ course.progress_pct }}%"></div></div>
+                  <span class="progress-row__value">{{ course.progress_pct }}%</span>
+                </div>
+              </td>
+              {% if tier_label == 'Leadership' %}
+                <td>
+                  {% if course.application_done %}
+                    <span class="pill pill--green">Done</span>
+                  {% elif course.application_commitment %}
+                    <span class="table-hint" title="{{ course.application_commitment }}">{{ course.application_commitment|truncatechars:40 }}</span>
+                  {% else %}
+                    <span class="pill pill--neutral">Not set</span>
+                  {% endif %}
+                </td>
+              {% endif %}
+              <td class="row-actions">
+                <a href="{% url 'tracker:edit_object' 'course' course.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+                <a class="is-danger" href="{% url 'tracker:delete_object' 'course' course.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty-state">No courses match these filters.</p>
+  {% endif %}
+</section>
+
+<!-- Yearly KPIs -->
+<section class="section">
+  <h2>KPIs <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'kpi' %}?next={{ request.get_full_path|urlencode }}">+ Add KPI</a></h2>
+  {% if kpis_by_pillar %}
+    {% for pillar, kpis in kpis_by_pillar.items %}
+      <h3 style="color:var(--color-text-secondary); font-size:1rem; margin-top:var(--space-3);">{{ pillar.code }} — {{ pillar.name }}</h3>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Code</th><th>Title</th><th>Target</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead>
+          <tbody>
+          {% for kpi in kpis %}
+            <tr>
+              <td>{{ kpi.code }}</td>
+              <td>{{ kpi.title }}</td>
+              <td>{{ kpi.target }}</td>
+              <td>
+                <form id="kpi-form-{{ kpi.pk }}" method="post" action="{% url 'tracker:quick_update_kpi' kpi.pk %}?next={{ request.get_full_path|urlencode }}">{% csrf_token %}</form>
+                <select name="status" form="kpi-form-{{ kpi.pk }}" class="inline-select" aria-label="Status for {{ kpi.code }}">
+                  {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if kpi.status == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+              <td>
+                <div class="progress-row">
+                  <div class="progress-bar"><div class="progress-bar__fill" style="width:{{ kpi.progress_pct }}%"></div></div>
+                  <span class="progress-row__value">{{ kpi.progress_pct }}%</span>
+                </div>
+                <div class="inline-edit">
+                  <input type="number" name="current_value" form="kpi-form-{{ kpi.pk }}" step="0.01"
+                         value="{{ kpi.current_value|default_if_none:'' }}"
+                         placeholder="{% if kpi.target_value %}of {{ kpi.target_value|floatformat:0 }}{% else %}value{% endif %}"
+                         class="inline-number" aria-label="Current value for {{ kpi.code }}">
+                  <button type="submit" form="kpi-form-{{ kpi.pk }}" class="button button--small inline-save-btn">Save</button>
+                </div>
+              </td>
+              <td class="row-actions">
+                <a href="{% url 'tracker:edit_object' 'kpi' kpi.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+                <a class="is-danger" href="{% url 'tracker:delete_object' 'kpi' kpi.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty-state">No KPIs match these filters.</p>
+  {% endif %}
+</section>
+
+<!-- Monthly plans -->
+<section class="section">
+  <h2>Monthly plans <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'monthly-plan' %}?next={{ request.get_full_path|urlencode }}">+ Add monthly plan</a></h2>
+  {% if monthly_plans %}
+    {% for plan in monthly_plans %}
+      <div class="monthly-plan-block card">
+        <div class="monthly-plan-block__header">
+          <div>
+            <strong>{{ plan.period_date|date:"F Y" }} — {{ plan.theme }}</strong>
+            <div class="page-header__meta">{{ plan.actual_hours|floatformat:0 }}/{{ plan.target_hours }}h logged ({{ plan.hours_variance_pct }}% variance)</div>
+          </div>
+          <span style="display:flex; align-items:center; gap:var(--space-2);">
+            {% if plan.status == 'COMPLETE' %}<span class="pill pill--green">Complete</span>
+            {% elif plan.status == 'ACTIVE' %}<span class="pill pill--amber">Active</span>
+            {% elif plan.status == 'SLIPPED' %}<span class="pill pill--red">Slipped</span>
+            {% else %}<span class="pill pill--neutral">Planned</span>{% endif %}
+            <a class="row-actions" href="{% url 'tracker:edit_object' 'monthly-plan' plan.pk %}?next={{ request.get_full_path|urlencode }}">Edit plan</a>
+            <a class="button button--small button--accent" href="{% url 'tracker:add_object' 'commitment' %}?next={{ request.get_full_path|urlencode }}">+ Add commitment</a>
+          </span>
+        </div>
+        {% if plan.commitments.all %}
+          <ul class="commitment-list">
+            {% for c in plan.commitments.all %}
+              <li class="commitment-item {% if c.is_complete %}is-complete{% endif %}">
+                <form method="post" action="{% url 'tracker:toggle_commitment' c.pk %}?next={{ request.get_full_path|urlencode }}" style="display:contents;">
+                  {% csrf_token %}
+                  <button type="submit" class="commitment-item__check" style="background:none; border:none; cursor:pointer; padding:0; font:inherit;" aria-label="Toggle complete">{% if c.is_complete %}☑{% else %}☐{% endif %}</button>
+                </form>
+                <span class="commitment-item__text">[{{ c.pillar.code }}] {{ c.commitment }} <span style="color:var(--color-text-secondary); font-size:0.85rem;">— {{ c.done_when }}</span></span>
+                <span class="row-actions">
+                  <a href="{% url 'tracker:edit_object' 'commitment' c.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+                  <a class="is-danger" href="{% url 'tracker:delete_object' 'commitment' c.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty-state">No commitments logged for this month.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty-state">No monthly plans yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

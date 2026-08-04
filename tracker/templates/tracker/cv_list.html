@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}CV — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>CV</h1>
+  <a class="button button--accent" href="{% url 'tracker:add_object' 'resume' %}?next={{ request.get_full_path|urlencode }}">+ Upload CV</a>
+</div>
+<p class="page-header__meta">Keep every resume version here. Mark one as default so you always know which is current.</p>
+
+{% if resumes %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Filename</th>
+          <th>Date of upload</th>
+          <th>Default</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for resume in resumes %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ resume.filename }}</td>
+            <td>{{ resume.created_at|date:"d M Y, H:i" }}</td>
+            <td>
+              {% if resume.is_default %}
+                <span class="pill pill--green">Default</span>
+              {% else %}
+                <form method="post" action="{% url 'tracker:set_default_resume' resume.pk %}?next={{ request.get_full_path|urlencode }}" style="display:contents;">
+                  {% csrf_token %}
+                  <button type="submit" class="button button--small">Set as default</button>
+                </form>
+              {% endif %}
+            </td>
+            <td class="row-actions">
+              <a href="{{ resume.file.url }}" download>Download</a>
+              <a href="{% url 'tracker:edit_object' 'resume' resume.pk %}?next={{ request.get_full_path|urlencode }}">Edit</a>
+              <a class="is-danger" href="{% url 'tracker:delete_object' 'resume' resume.pk %}?next={{ request.get_full_path|urlencode }}">Delete</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="empty-state">No CVs uploaded yet. <a href="{% url 'tracker:add_object' 'resume' %}?next={{ request.get_full_path|urlencode }}">Upload the first one →</a></p>
+{% endif %}
+{% endblock %}

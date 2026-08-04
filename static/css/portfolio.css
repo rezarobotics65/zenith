@@ -1,0 +1,462 @@
+/* ==========================================================================
+   Portfolio — public page styling.
+   Deep navy + coral palette (per reference brand board), off-white base in
+   light mode / near-black navy in dark mode. Flat surfaces, hairline
+   borders; the accent gradient is used sparingly — primary CTA, the AI
+   Inside band's top edge, and a soft hero glow — not scattered everywhere.
+   ========================================================================== */
+
+.public-body { background: var(--color-bg); }
+
+.container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-3);
+}
+
+/* -------------------------------------------------------------------------
+   Site nav (anchor navigation)
+   ------------------------------------------------------------------------- */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--color-border);
+}
+.site-nav__inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  overflow-x: auto;
+}
+.site-nav__brand {
+  font-weight: 500;
+  color: var(--color-navy);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.site-nav__links { display: flex; gap: var(--space-3); flex-wrap: nowrap; }
+.site-nav__links a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+.site-nav__links a:hover { color: var(--color-navy); }
+.site-nav__staff-link {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+.site-nav__staff-link:hover { color: var(--color-navy); opacity: 1; }
+
+/* -------------------------------------------------------------------------
+   Hero
+   ------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  padding: var(--space-6) 0 var(--space-4);
+  overflow: hidden;
+}
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 60%;
+  height: 140%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-accent-light) 22%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero__inner { position: relative; z-index: 1; }
+.hero__inner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-4);
+  align-items: center;
+}
+.hero__photo {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+}
+.hero__photo-placeholder {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+.hero__name {
+  font-size: 2rem;
+  color: var(--color-navy);
+  margin-bottom: 4px;
+}
+.hero__headline {
+  font-size: 1.15rem;
+  color: var(--color-accent);
+  font-weight: 500;
+  margin-bottom: var(--space-1);
+}
+.hero__tagline {
+  color: var(--color-text-secondary);
+  max-width: 60ch;
+}
+.hero__meta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+  margin: var(--space-2) 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
+}
+.hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+.hero__badge::before {
+  content: "";
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.hero__ctas { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+
+/* -------------------------------------------------------------------------
+   "AI Inside" band — signal, not decoration. Section 8 of BUILD_BRIEF.md.
+   ------------------------------------------------------------------------- */
+
+.ai-band {
+  position: relative;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
+}
+.ai-band::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--gradient-accent);
+}
+.ai-band__inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.ai-band__label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  padding: 5px 12px;
+  border-radius: var(--radius-control);
+  white-space: nowrap;
+}
+.ai-band__metrics {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  flex: 1;
+}
+.ai-band__metric {
+  display: flex;
+  flex-direction: column;
+  padding-left: 14px;
+  border-left: 3px solid var(--color-accent-light);
+  min-width: 130px;
+}
+.ai-band__metric-value {
+  font-weight: 700;
+  color: var(--color-accent);
+  font-size: 1.6rem;
+  line-height: 1.15;
+}
+.ai-band__metric-label {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+/* -------------------------------------------------------------------------
+   Sections (generic)
+   ------------------------------------------------------------------------- */
+
+.pf-section { padding: var(--space-5) 0; border-bottom: 1px solid var(--color-border); }
+.pf-section:last-of-type { border-bottom: none; }
+.pf-section h2 {
+  color: var(--color-navy);
+  font-size: 1.5rem;
+  margin-bottom: var(--space-3);
+}
+.pf-section__intro { color: var(--color-text-secondary); max-width: 70ch; margin-bottom: var(--space-3); }
+
+/* -------------------------------------------------------------------------
+   Skills
+   ------------------------------------------------------------------------- */
+
+.skills-layout {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+.domain-group { margin-bottom: var(--space-3); }
+.domain-group__header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: var(--space-1);
+}
+.domain-group__name { font-weight: 500; color: var(--color-text); }
+.domain-group--ai .domain-group__name { color: var(--color-accent); }
+.domain-group__priority { font-size: 0.78rem; color: var(--color-text-secondary); }
+
+.skill-bar { margin-bottom: 10px; }
+.skill-bar__row { display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 3px; }
+.skill-bar__name { color: var(--color-text); }
+.skill-bar__value { color: var(--color-text-secondary); }
+.skill-bar__track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+.skill-bar__fill {
+  height: 100%;
+  background: var(--color-navy);
+  border-radius: 999px;
+}
+.domain-group--ai .skill-bar__fill { background: var(--color-accent); }
+
+.radar-wrap { position: sticky; top: 90px; }
+
+/* -------------------------------------------------------------------------
+   Certifications
+   ------------------------------------------------------------------------- */
+
+.cert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-2);
+}
+.cert-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-2);
+  position: relative;
+}
+.cert-card__dot {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+.cert-card__name { font-weight: 500; margin-bottom: 2px; padding-right: 16px; }
+.cert-card__provider { color: var(--color-text-secondary); font-size: 0.85rem; margin-bottom: var(--space-1); }
+.cert-card__footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-1); margin-top: var(--space-1); }
+.cert-card__link { font-size: 0.85rem; }
+
+/* -------------------------------------------------------------------------
+   Experience timeline
+   ------------------------------------------------------------------------- */
+
+.timeline { position: relative; padding-left: 28px; }
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 6px; top: 6px; bottom: 6px;
+  width: 1px;
+  background: var(--color-border);
+}
+.timeline-item { position: relative; margin-bottom: var(--space-4); }
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -28px; top: 6px;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--color-navy);
+  border: 2px solid var(--color-bg);
+}
+.timeline-item__title { font-weight: 500; font-size: 1.05rem; }
+.timeline-item__company { color: var(--color-accent); font-weight: 500; }
+.timeline-item__meta { color: var(--color-text-secondary); font-size: 0.88rem; margin-bottom: var(--space-1); }
+.timeline-item__summary { color: var(--color-text-secondary); margin-bottom: var(--space-1); }
+.achievement-list { list-style: none; padding: 0; margin: 0; }
+.achievement-item {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 0.95rem;
+}
+.achievement-item__metric {
+  color: var(--color-navy);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------
+   Case studies
+   ------------------------------------------------------------------------- */
+
+.case-study-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-2);
+}
+.case-study-card {
+  display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  text-decoration: none;
+  color: inherit;
+}
+.case-study-card:hover { border-color: var(--color-accent); }
+.case-study-card__title { font-weight: 500; color: var(--color-navy); margin-bottom: 6px; }
+.case-study-card__metric { color: var(--color-accent); font-weight: 500; font-size: 0.92rem; }
+.ai-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+/* -------------------------------------------------------------------------
+   Education / Languages / Contact
+   ------------------------------------------------------------------------- */
+
+.education-list, .languages-list { list-style: none; padding: 0; margin: 0; }
+.education-item, .language-item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-wrap: wrap;
+}
+.education-item:last-child, .language-item:last-child { border-bottom: none; }
+.education-item__qualification { font-weight: 500; }
+.education-item__meta { color: var(--color-text-secondary); font-size: 0.9rem; }
+.language-item__name { font-weight: 500; }
+.language-item__level {
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.contact-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.contact-list a { color: var(--color-text); text-decoration: none; }
+.contact-list a:hover { color: var(--color-accent); }
+
+/* -------------------------------------------------------------------------
+   Site footer
+   ------------------------------------------------------------------------- */
+
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-3) 0;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+}
+.site-footer__inner { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-3); }
+
+/* -------------------------------------------------------------------------
+   Case study detail page
+   ------------------------------------------------------------------------- */
+
+.cs-detail { padding: var(--space-5) 0; }
+.cs-detail__back { display: inline-block; margin-bottom: var(--space-3); }
+.cs-detail__metric {
+  display: inline-block;
+  color: var(--color-accent);
+  font-weight: 500;
+  font-size: 1.3rem;
+  margin-bottom: var(--space-3);
+}
+.cs-detail__block { margin-bottom: var(--space-4); }
+.cs-detail__block h2 {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  margin-bottom: var(--space-1);
+}
+
+/* -------------------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .skills-layout { grid-template-columns: 1fr; }
+  .radar-wrap { position: static; max-width: 420px; }
+}
+
+@media (max-width: 768px) {
+  .hero__inner { grid-template-columns: 1fr; text-align: center; }
+  .hero__meta { justify-content: center; }
+  .hero__ctas { justify-content: center; }
+  .hero__photo, .hero__photo-placeholder { margin: 0 auto; }
+  .ai-band__inner { flex-direction: column; align-items: flex-start; }
+  .cert-grid, .case-study-grid { grid-template-columns: 1fr; }
+  .site-nav__links { gap: var(--space-2); }
+}
+
+/* -------------------------------------------------------------------------
+   Print — Section 8: clean single-document PDF
+   ------------------------------------------------------------------------- */
+
+@media print {
+  .site-nav, .hero__ctas, .site-footer, .skip-link { display: none !important; }
+  .hero::before, .ai-band::before { display: none !important; }
+  body { background: #fff; color: #000; }
+  .pf-section { border-bottom: none; padding: var(--space-2) 0; page-break-inside: avoid; }
+  .radar-wrap { position: static; }
+  .ai-band__metric-value { color: #000 !important; }
+  a { color: #000; text-decoration: underline; }
+  a[href^="http"]::after, a[href^="mailto"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #444;
+  }
+  .cert-card, .case-study-card, .card { border: 1px solid #999; }
+}

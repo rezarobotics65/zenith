@@ -1,0 +1,45 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Career Tracker{% endblock %}</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% block extra_head %}{% endblock %}
+</head>
+<body class="tracker-body">
+<a class="skip-link" href="#main-content">Skip to content</a>
+<header class="tracker-header">
+  <div class="tracker-header__inner">
+    <a class="tracker-brand" href="{% url 'tracker:dashboard' %}">Career Tracker</a>
+    <nav class="tracker-nav" aria-label="Tracker navigation">
+      <a href="{% url 'tracker:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Dashboard</a>
+      <a href="{% url 'tracker:kpi_timetable' %}" {% if request.resolver_match.url_name == 'kpi_timetable' %}aria-current="page"{% endif %}>KPI &amp; Timetable</a>
+      <a href="{% url 'tracker:activity_log' %}" {% if request.resolver_match.url_name == 'activity_log' %}aria-current="page"{% endif %}>Activity Log</a>
+      <a href="{% url 'tracker:cv_list' %}" {% if request.resolver_match.url_name == 'cv_list' %}aria-current="page"{% endif %}>CV</a>
+      <a href="/admin/">Admin</a>
+    </nav>
+    <form method="post" action="{% url 'logout' %}" class="tracker-logout">
+      {% csrf_token %}
+      <button type="submit" class="link-button">Log out</button>
+    </form>
+  </div>
+</header>
+<main id="main-content" class="tracker-main">
+{% if messages %}
+  <ul class="messages">
+    {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+  </ul>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+<footer class="tracker-footer">
+  <p>Private career tracker — signed in as {{ request.user.get_username }}</p>
+</footer>
+<script src="{% static 'js/charts.js' %}" defer></script>
+<script src="{% static 'js/modal.js' %}" defer></script>
+<script src="{% static 'js/inline-edit.js' %}" defer></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

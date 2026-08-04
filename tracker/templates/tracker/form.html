@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_new %}Add{% else %}Edit{% endif %} {{ display_name }} — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="modal-target">
+  <div class="page-header">
+    <h1>{% if is_new %}Add {{ display_name }}{% else %}Edit {{ display_name }}{% endif %}</h1>
+  </div>
+
+  <div class="card" style="max-width: 640px;">
+    <form method="post" action="{{ request.path }}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+
+      {% if form.non_field_errors %}
+        <p class="form-error">{{ form.non_field_errors }}</p>
+      {% endif %}
+
+      {% for field in form %}
+        <div class="form-row">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="form-hint">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<p class="form-error">{{ field.errors|striptags }}</p>{% endif %}
+        </div>
+      {% endfor %}
+
+      <div style="display:flex; gap:var(--space-2); margin-top:var(--space-3);">
+        <button type="submit" class="button button--primary">Save</button>
+        <a class="button modal-cancel" href="{{ next }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

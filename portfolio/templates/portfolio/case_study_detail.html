@@ -1,0 +1,36 @@
+{% extends "base_public.html" %}
+
+{% block title %}{{ case_study.title }} — Reza Yousefi{% endblock %}
+{% block meta_description %}{{ case_study.headline_metric|default:case_study.title }}{% endblock %}
+
+{% block content %}
+<main id="main-content" class="container cs-detail">
+  <a class="cs-detail__back" href="/#case-studies">&larr; Back to case studies</a>
+  {% if case_study.is_ai_related %}<span class="ai-tag">AI</span>{% endif %}
+  <h1>{{ case_study.title }}</h1>
+  {% if case_study.headline_metric %}
+    <p class="cs-detail__metric">{{ case_study.headline_metric }}</p>
+  {% endif %}
+
+  <div class="cs-detail__block">
+    <h2>Situation</h2>
+    <div>{{ case_study.situation|linebreaks }}</div>
+  </div>
+  <div class="cs-detail__block">
+    <h2>Task</h2>
+    <div>{{ case_study.task|linebreaks }}</div>
+  </div>
+  <div class="cs-detail__block">
+    <h2>Action</h2>
+    <div>{{ case_study.action|linebreaks }}</div>
+  </div>
+  <div class="cs-detail__block">
+    <h2>Result</h2>
+    <div>{{ case_study.result|linebreaks }}</div>
+  </div>
+
+  {% if case_study.date_completed %}
+    <p class="pf-section__intro">Completed {{ case_study.date_completed|date:"F Y" }}</p>
+  {% endif %}
+</main>
+{% endblock %}

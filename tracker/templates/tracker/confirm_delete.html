@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Delete {{ display_name }} — Career Tracker{% endblock %}
+
+{% block content %}
+<div class="modal-target">
+  <div class="page-header">
+    <h1>Delete {{ display_name }}?</h1>
+  </div>
+
+  <div class="card" style="max-width: 560px;">
+    <p>Are you sure you want to delete <strong>{{ object }}</strong>? This can't be undone.</p>
+    <form method="post" action="{{ request.path }}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <div style="display:flex; gap:var(--space-2); margin-top:var(--space-3);">
+        <button type="submit" class="button button--danger">Delete</button>
+        <a class="button modal-cancel" href="{{ next }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
