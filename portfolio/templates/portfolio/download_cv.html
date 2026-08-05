@@ -1,0 +1,39 @@
+{% extends "base_public.html" %}
+
+{% block title %}Download CV — Reza Yousefi{% endblock %}
+
+{% block content %}
+<main id="main-content" class="container cs-detail" style="max-width: 480px;">
+  <a class="cs-detail__back" href="/">&larr; Back to portfolio</a>
+
+  {% if not resume_available %}
+    <h1>CV not available right now</h1>
+    <p class="pf-section__intro">Please check back soon, or reach out directly instead.</p>
+    <a class="button button--accent" href="/#contact">Contact</a>
+  {% else %}
+    <h1>Download CV</h1>
+    <p class="pf-section__intro">Quick intro before you download — who should I know reached out?</p>
+    <div class="card">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="src" value="{{ src }}">
+        <div class="form-row">
+          <label for="{{ form.name.id_for_label }}">Name</label>
+          {{ form.name }}
+          {% if form.name.errors %}<p class="form-error">{{ form.name.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-row">
+          <label for="{{ form.organization.id_for_label }}">Organization <span class="page-header__meta">(optional)</span></label>
+          {{ form.organization }}
+        </div>
+        <div class="form-row">
+          <label for="{{ form.email.id_for_label }}">Email</label>
+          {{ form.email }}
+          {% if form.email.errors %}<p class="form-error">{{ form.email.errors.0 }}</p>{% endif %}
+        </div>
+        <button type="submit" class="button button--accent">Download CV <svg class="icon icon--small" aria-hidden="true"><use href="#icon-download"></use></svg></button>
+      </form>
+    </div>
+  {% endif %}
+</main>
+{% endblock %}

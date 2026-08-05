@@ -239,7 +239,8 @@ def filter_cv_downloads(start, end, search=''):
     qs = CVDownloadLog.objects.filter(download_time__gte=start, download_time__lt=end)
     if search:
         qs = qs.filter(
-            Q(visitor_ip__icontains=search) | Q(country__icontains=search) | Q(region__icontains=search)
+            Q(visitor_name__icontains=search) | Q(organization__icontains=search) | Q(email__icontains=search)
+            | Q(visitor_ip__icontains=search) | Q(country__icontains=search) | Q(region__icontains=search)
             | Q(city__icontains=search) | Q(browser__icontains=search) | Q(cv_version__icontains=search)
         )
     return qs

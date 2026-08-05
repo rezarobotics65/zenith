@@ -191,8 +191,8 @@ class VisitorLogAdmin(ReadOnlyLogAdmin):
 
 @admin.register(CVDownloadLog)
 class CVDownloadLogAdmin(ReadOnlyLogAdmin):
-    list_display = ('download_time', 'visitor_ip', 'country', 'city', 'device', 'download_source')
+    list_display = ('download_time', 'visitor_name', 'organization', 'email', 'country', 'city', 'device', 'download_source')
     list_filter = ('device', 'country')
-    search_fields = ('visitor_ip', 'country', 'region', 'city', 'cv_version')
+    search_fields = ('visitor_name', 'organization', 'email', 'visitor_ip', 'country', 'region', 'city', 'cv_version')
     date_hierarchy = 'download_time'
     ordering = ('-download_time',)

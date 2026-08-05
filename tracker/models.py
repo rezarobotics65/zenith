@@ -493,10 +493,18 @@ class VisitorLog(models.Model):
 
 class CVDownloadLog(models.Model):
     """One row per CV download from the public portfolio, created by
-    portfolio.views.download_cv."""
+    portfolio.views.download_cv. Downloads are gated behind a short form —
+    visitor_name/organization/email are what the visitor typed in, not
+    detected automatically, so this is the one place VisitorLog-style rows
+    hold something beyond public network/browser data (Section 13 of the
+    brief covers automatic tracking; a visitor typing in their own name to
+    request a download is different from being tracked passively)."""
 
     download_time = models.DateTimeField(auto_now_add=True, db_index=True)
     visitor_ip = models.GenericIPAddressField()
+    visitor_name = models.CharField(max_length=120)
+    organization = models.CharField(max_length=120, blank=True)
+    email = models.EmailField()
     country = models.CharField(max_length=80, blank=True)
     region = models.CharField(max_length=80, blank=True)
     city = models.CharField(max_length=80, blank=True)
@@ -511,4 +519,4 @@ class CVDownloadLog(models.Model):
         ordering = ['-download_time']
 
     def __str__(self):
-        return f'{self.visitor_ip} @ {self.download_time:%Y-%m-%d %H:%M}'
+        return f'{self.visitor_name} ({self.visitor_ip}) @ {self.download_time:%Y-%m-%d %H:%M}'

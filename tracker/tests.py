@@ -495,6 +495,8 @@ def test_visitor_log_page_shows_kpis_and_respects_search(staff_client):
 @pytest.mark.django_db
 def test_visitor_log_row_shows_cv_download_yes(staff_client):
     _make_visit(ip_address='9.9.9.9')
-    CVDownloadLog.objects.create(visitor_ip='9.9.9.9', cv_version='resume.pdf')
+    CVDownloadLog.objects.create(
+        visitor_ip='9.9.9.9', visitor_name='Jane Recruiter', email='jane@example.com', cv_version='resume.pdf',
+    )
     response = staff_client.get('/tracker/visitor-log/')
     assert b'Yes' in response.content

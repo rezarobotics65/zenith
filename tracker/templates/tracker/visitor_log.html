@@ -247,6 +247,9 @@
         {% for d in downloads_page %}
         <tr>
           <td>{{ d.download_time|date:"d M Y H:i" }}</td>
+          <td>{{ d.visitor_name }}</td>
+          <td>{{ d.organization|default:"—" }}</td>
+          <td><a href="mailto:{{ d.email }}">{{ d.email }}</a></td>
           <td>{{ d.country|default:"—" }}</td>
           <td>{{ d.region|default:"—" }}</td>
           <td>{{ d.city|default:"—" }}</td>
@@ -256,7 +259,7 @@
           <td>{{ d.download_source }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="8">No CV downloads recorded for this range yet.</td></tr>
+        <tr><td colspan="11">No CV downloads recorded for this range yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

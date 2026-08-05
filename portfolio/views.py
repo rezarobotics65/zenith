@@ -1,4 +1,4 @@
-from django.http import FileResponse, Http404
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, render
 
 # Cross-app queries and writes: the Skills/Certifications sections read tracker
@@ -10,8 +10,9 @@ import logging
 
 from tracker import geoip
 from tracker.middleware import get_client_ip, parse_user_agent
-from tracker.models import CVDownloadLog, Certification, SkillDomain
+from tracker.models import CVDownloadLog, Certification, Resume, SkillDomain
 
+from .forms import CVDownloadRequestForm
 from .models import Achievement, CaseStudy, CoreExpertise, Education, Experience, Language, Profile, TechTool
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ def home(request):
         'radar_data': radar_data,
         'core_expertise': core_expertise,
         'tech_tools': tech_tools,
+        'has_cv': Resume.objects.filter(is_default=True).exists(),
     }
     return render(request, 'portfolio/home.html', context)
 
@@ -80,34 +82,54 @@ def case_study_detail(request, slug):
 
 
 def download_cv(request):
-    """Serves the published CV and logs a CVDownloadLog row first. The
-    portfolio's "Download CV" links point here (with a ?src= tag identifying
-    which button was clicked) instead of straight at profile.cv_file.url, so
-    the download actually passes through Django and can be logged — a direct
-    media URL is served by nginx/WhiteNoise in production and Django never
-    sees the request at all."""
+    """Gated CV download. Visitors fill in name/organization/email before the
+    file is served — the form re-renders with errors on invalid input rather
+    than downloading. Always serves whichever tracker.Resume is marked
+    default (the tracker's CV manager), never profile.cv_file, which this
+    supersedes as the source of the public download.
+
+    The portfolio's "Download CV" links point here (with a ?src= tag
+    identifying which button was clicked) instead of straight at a media
+    URL, so the request actually passes through Django and can be gated/
+    logged — a direct media URL is served by nginx/WhiteNoise in production
+    and Django never sees it at all."""
     profile = Profile.objects.filter(pk=1, is_published=True).first()
-    if not profile or not profile.cv_file:
-        raise Http404('No CV available.')
+    resume = Resume.objects.filter(is_default=True).first()
+    if not resume:
+        return render(request, 'portfolio/download_cv.html', {'resume_available': False, 'profile': profile})
 
-    try:
-        ip_address = get_client_ip(request)
-        ua_info = parse_user_agent(request.META.get('HTTP_USER_AGENT', ''))
-        geo = geoip.lookup(ip_address) if ip_address else geoip.EMPTY_RESULT
-        CVDownloadLog.objects.create(
-            visitor_ip=ip_address or '0.0.0.0',
-            country=geo['country'],
-            region=geo['region'],
-            city=geo['city'],
-            browser=ua_info['browser'],
-            device=ua_info['device'],
-            cv_version=profile.cv_file.name.rsplit('/', 1)[-1],
-            download_source=request.GET.get('src', 'unknown')[:100],
-        )
-    except Exception:
-        logger.warning('CV download tracking failed', exc_info=True)  # never blocks the actual download
+    src = (request.POST.get('src') or request.GET.get('src') or 'unknown')[:100]
 
-    return FileResponse(profile.cv_file.open('rb'), as_attachment=True, filename=profile.cv_file.name.rsplit('/', 1)[-1])
+    if request.method == 'POST':
+        form = CVDownloadRequestForm(request.POST)
+        if form.is_valid():
+            try:
+                ip_address = get_client_ip(request)
+                ua_info = parse_user_agent(request.META.get('HTTP_USER_AGENT', ''))
+                geo = geoip.lookup(ip_address) if ip_address else geoip.EMPTY_RESULT
+                CVDownloadLog.objects.create(
+                    visitor_ip=ip_address or '0.0.0.0',
+                    visitor_name=form.cleaned_data['name'],
+                    organization=form.cleaned_data['organization'],
+                    email=form.cleaned_data['email'],
+                    country=geo['country'],
+                    region=geo['region'],
+                    city=geo['city'],
+                    browser=ua_info['browser'],
+                    device=ua_info['device'],
+                    cv_version=resume.filename,
+                    download_source=src,
+                )
+            except Exception:
+                logger.warning('CV download tracking failed', exc_info=True)  # never blocks the actual download
+
+            return FileResponse(resume.file.open('rb'), as_attachment=True, filename=resume.filename)
+    else:
+        form = CVDownloadRequestForm()
+
+    return render(request, 'portfolio/download_cv.html', {
+        'form': form, 'src': src, 'resume_available': True, 'profile': profile,
+    })
 
 
 def error_404(request, exception=None):

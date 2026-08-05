@@ -87,8 +87,8 @@
         <h1 class="hero__heading">{{ profile.tagline|accentize }}</h1>
         <p class="hero__summary">{{ profile.introduction|truncatewords:32 }}</p>
         <div class="hero__ctas">
-          {% if profile.cv_file %}
-            <a class="button button--accent" href="{% url 'portfolio:download_cv' %}?src=hero" download>Download CV <svg class="icon icon--small" aria-hidden="true"><use href="#icon-download"></use></svg></a>
+          {% if has_cv %}
+            <a class="button button--accent" href="{% url 'portfolio:download_cv' %}?src=hero">Download CV <svg class="icon icon--small" aria-hidden="true"><use href="#icon-download"></use></svg></a>
           {% endif %}
           {% if profile.linkedin_url %}
             <a class="button" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">Connect on LinkedIn <svg class="icon icon--small" aria-hidden="true"><use href="#icon-external"></use></svg></a>
@@ -373,8 +373,8 @@
         </div>
         <div class="cta-banner__actions">
           <a class="button button--accent cta-banner__button" href="#contact">Contact Me</a>
-          {% if profile.cv_file %}
-            <a class="button cta-banner__button--ghost" href="{% url 'portfolio:download_cv' %}?src=cta_banner" download>Download CV</a>
+          {% if has_cv %}
+            <a class="button cta-banner__button--ghost" href="{% url 'portfolio:download_cv' %}?src=cta_banner">Download CV</a>
           {% endif %}
           {% if profile.linkedin_url %}
             <a class="button cta-banner__button--ghost" href="{{ profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>

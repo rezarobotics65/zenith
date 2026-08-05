@@ -4,7 +4,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from portfolio.models import CaseStudy, Experience, Profile
-from tracker.models import CVDownloadLog
+from tracker.models import CVDownloadLog, Resume
 
 
 @pytest.mark.django_db
@@ -62,25 +62,72 @@ def test_published_case_study_detail_200(client):
     assert b'Published Case Study' in response.content
 
 
-@pytest.mark.django_db
-def test_download_cv_logs_and_serves_file(client, tmp_media):
-    cv_file = SimpleUploadedFile('resume.pdf', b'%PDF-1.4 test content', content_type='application/pdf')
-    Profile.objects.update_or_create(pk=1, defaults=dict(
-        full_name='Reza', headline='H', tagline='T', introduction='I', location='L',
-        email='a@b.com', phone='1', years_experience=1, is_published=True, cv_file=cv_file,
-    ))
+def _default_resume(tmp_media):
+    return Resume.objects.create(
+        file=SimpleUploadedFile('resume.pdf', b'%PDF-1.4 test content', content_type='application/pdf'),
+        is_default=True,
+    )
 
-    assert CVDownloadLog.objects.count() == 0
+
+@pytest.mark.django_db
+def test_download_cv_shows_gate_form_when_resume_available(client, tmp_media):
+    _default_resume(tmp_media)
     response = client.get('/cv/download/?src=hero')
+    assert response.status_code == 200
+    assert b'form' in response.content
+    assert CVDownloadLog.objects.count() == 0  # nothing logged until the form is submitted
+
+
+@pytest.mark.django_db
+def test_download_cv_logs_and_serves_file_on_valid_submission(client, tmp_media):
+    _default_resume(tmp_media)
+    response = client.post('/cv/download/', data={
+        'name': 'Jane Recruiter', 'organization': 'Acme Corp', 'email': 'jane@acme.example', 'src': 'hero',
+    })
     assert response.status_code == 200
     assert response['Content-Disposition'].startswith('attachment')
     assert CVDownloadLog.objects.count() == 1
     log = CVDownloadLog.objects.first()
+    assert log.visitor_name == 'Jane Recruiter'
+    assert log.organization == 'Acme Corp'
+    assert log.email == 'jane@acme.example'
     assert log.download_source == 'hero'
     assert log.cv_version == 'resume.pdf'
 
 
 @pytest.mark.django_db
-def test_download_cv_404s_without_profile(client):
+def test_download_cv_rejects_incomplete_submission(client, tmp_media):
+    _default_resume(tmp_media)
+    response = client.post('/cv/download/', data={'name': '', 'email': 'not-an-email'})
+    assert response.status_code == 200
+    assert CVDownloadLog.objects.count() == 0
+    assert 'Content-Disposition' not in response
+
+
+@pytest.mark.django_db
+def test_download_cv_shows_unavailable_message_without_a_default_resume(client):
     response = client.get('/cv/download/')
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert b'not available' in response.content.lower()
+    assert CVDownloadLog.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_home_hides_download_cv_button_without_default_resume(client):
+    Profile.objects.update_or_create(pk=1, defaults=dict(
+        full_name='Reza', headline='H', tagline='T', introduction='I', location='L',
+        email='a@b.com', phone='1', years_experience=1, is_published=True,
+    ))
+    response = client.get('/')
+    assert b'Download CV' not in response.content
+
+
+@pytest.mark.django_db
+def test_home_shows_download_cv_button_with_default_resume(client, tmp_media):
+    Profile.objects.update_or_create(pk=1, defaults=dict(
+        full_name='Reza', headline='H', tagline='T', introduction='I', location='L',
+        email='a@b.com', phone='1', years_experience=1, is_published=True,
+    ))
+    _default_resume(tmp_media)
+    response = client.get('/')
+    assert b'Download CV' in response.content

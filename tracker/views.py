@@ -517,7 +517,10 @@ VISITOR_SORT_FIELDS = {
     'visit_time', 'ip_address', 'country', 'region', 'city',
     'browser', 'operating_system', 'device', 'referral_source', 'landing_page',
 }
-DOWNLOAD_SORT_FIELDS = {'download_time', 'country', 'region', 'city', 'browser', 'device', 'cv_version'}
+DOWNLOAD_SORT_FIELDS = {
+    'download_time', 'visitor_name', 'organization', 'email', 'country', 'region', 'city',
+    'browser', 'device', 'cv_version',
+}
 
 
 def _apply_sort(qs, sort_param, allowed_fields, default):
@@ -584,7 +587,8 @@ def visitor_log(request):
             ('device', 'Device'), ('referral_source', 'Referral'), ('landing_page', 'Landing Page'),
         ],
         'download_columns': [
-            ('download_time', 'Download Time'), ('country', 'Country'), ('region', 'Region'), ('city', 'City'),
+            ('download_time', 'Download Time'), ('visitor_name', 'Name'), ('organization', 'Organization'),
+            ('email', 'Email'), ('country', 'Country'), ('region', 'Region'), ('city', 'City'),
             ('browser', 'Browser'), ('device', 'Device'), ('cv_version', 'CV Version'), ('download_source', 'Source'),
         ],
     }
@@ -617,13 +621,16 @@ def _visitor_export_row(v):
     ]
 
 
-DOWNLOAD_EXPORT_HEADERS = ['Download Time', 'IP Address', 'Country', 'Region', 'City', 'Browser', 'Device', 'CV Version', 'Source']
+DOWNLOAD_EXPORT_HEADERS = [
+    'Download Time', 'Name', 'Organization', 'Email', 'IP Address', 'Country', 'Region', 'City',
+    'Browser', 'Device', 'CV Version', 'Source',
+]
 
 
 def _download_export_row(d):
     return [
-        timezone.localtime(d.download_time).strftime('%Y-%m-%d %H:%M:%S'), d.visitor_ip, d.country, d.region,
-        d.city, d.browser, d.get_device_display(), d.cv_version, d.download_source,
+        timezone.localtime(d.download_time).strftime('%Y-%m-%d %H:%M:%S'), d.visitor_name, d.organization, d.email,
+        d.visitor_ip, d.country, d.region, d.city, d.browser, d.get_device_display(), d.cv_version, d.download_source,
     ]
 
 
@@ -727,9 +734,10 @@ def api_download_log(request):
         'num_pages': page.paginator.num_pages,
         'results': [
             {
-                'download_time': d.download_time.isoformat(), 'visitor_ip': d.visitor_ip, 'country': d.country,
-                'region': d.region, 'city': d.city, 'browser': d.browser, 'device': d.device,
-                'cv_version': d.cv_version, 'download_source': d.download_source,
+                'download_time': d.download_time.isoformat(), 'visitor_name': d.visitor_name,
+                'organization': d.organization, 'email': d.email, 'visitor_ip': d.visitor_ip,
+                'country': d.country, 'region': d.region, 'city': d.city, 'browser': d.browser,
+                'device': d.device, 'cv_version': d.cv_version, 'download_source': d.download_source,
             }
             for d in page.object_list
         ],
